@@ -66,14 +66,14 @@ npx shadcn@latest add button card input label slider select
 ### Phase 4: Core Controls
 **Goal**: Build all watermark customization controls
 
-- [ ] Text input with character counter (50 char limit)
-- [ ] Quick preset buttons (CONFIDENTIAL, FOR VERIFICATION, SAMPLE, DRAFT)
-- [ ] Pattern mode toggle (Single / Diagonal Repeat)
-- [ ] Font size slider (12-72px)
-- [ ] Color picker (presets + custom)
-- [ ] Angle slider (-45° to 45°)
-- [ ] Opacity slider (0-100%)
-- [ ] Export format selection (PNG/JPG)
+- [x] Text input with character counter (50 char limit)
+- [x] Quick preset buttons (CONFIDENTIAL, FOR VERIFICATION, SAMPLE, DRAFT)
+- [x] Pattern mode toggle (Single / Diagonal Repeat)
+- [x] Font size slider (12-72px)
+- [x] Color picker (presets + custom)
+- [x] Angle slider (-45° to 45°)
+- [x] Opacity slider (0-100%)
+- [x] Export format selection (PNG/JPG)
 
 ### Phase 5: Actions & Polish
 **Goal**: Add export functionality and polish the experience

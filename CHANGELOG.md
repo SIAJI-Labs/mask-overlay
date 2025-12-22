@@ -7,12 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Planning Phase
-- Complete project specifications defined
-- UI mockups and wireframes created
-- Development phases outlined
-- Contributing guidelines established
-- PWA architecture planned
+### Added - Phase 2: UI Foundation
+- Responsive layout with Header, MainLayout, and ControlsSidebar
+- File upload with drag-and-drop and validation (PNG/JPG, max 10MB)
+- Mobile-friendly bottom sheet for controls (via shadcn/ui Sheet)
+- shadcn/ui components: button, card, input, label, slider, select, sheet
+
+### Added - Phase 3: Canvas & Preview
+- CanvasPreview component with HTML5 Canvas API
+- Image rendering with aspect ratio maintenance
+- Watermark overlay (single + diagonal repeat modes)
+- Zoom controls (50%-300%) with pan/drag navigation
+- Image rotation (0°/90°/180°/270°)
+- Export functionality (PNG/JPG download)
+
+### Added - Phase 4: Core Controls
+- Text input with 50-char limit and presets
+- Pattern mode toggle (Single / Diagonal Repeat)
+- Font size, opacity, and angle sliders
+- Color picker with presets + custom colors
+- Text gap control (diagonal mode)
+- X/Y offset positioning (single mode)
 
 ## [0.1.0] - 2025-12-22
 
