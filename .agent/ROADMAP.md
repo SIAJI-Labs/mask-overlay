@@ -78,13 +78,13 @@ npx shadcn@latest add button card input label slider select
 ### Phase 5: Actions & Polish
 **Goal**: Add export functionality and polish the experience
 
-- [ ] Export/Download functionality
-- [ ] Reset functionality with confirmation
-- [ ] Diagonal pattern implementation
-- [ ] Keyboard shortcuts (Ctrl+R for reset)
-- [ ] Loading states and animations
-- [ ] Responsive mobile optimization
-- [ ] Accessibility improvements (ARIA, keyboard nav)
+- [x] Export/Download functionality
+- [x] Reset functionality with confirmation
+- [x] Diagonal pattern implementation
+- [x] Keyboard shortcuts (+/- zoom, arrows rotate)
+- [x] Loading states and animations
+- [x] Responsive mobile optimization
+- [x] Accessibility improvements (ARIA, keyboard nav)
 
 ### Phase 6: PWA Implementation
 **Goal**: Enable offline capability and installability

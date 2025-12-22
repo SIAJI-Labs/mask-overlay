@@ -2,8 +2,9 @@
 
 import React, { useRef, useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { ZoomIn, ZoomOut, RotateCcw, Hand, RotateCw } from "lucide-react";
+import { ZoomIn, ZoomOut, RotateCcw, Hand, RotateCw, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 
 export interface WatermarkSettings {
     text: string;
@@ -30,16 +31,22 @@ export function CanvasPreview({ imageSrc, settings }: CanvasPreviewProps) {
     const [scale, setScale] = useState(1);
     const [imageRotation, setImageRotation] = useState(0); // 0, 90, 180, 270
     const [originalImage, setOriginalImage] = useState<HTMLImageElement | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
     const [isPanning, setIsPanning] = useState(false);
     const [panStart, setPanStart] = useState({ x: 0, y: 0 });
     const [scrollStart, setScrollStart] = useState({ x: 0, y: 0 });
 
     // Load image once
     useEffect(() => {
+        setIsLoading(true);
         const img = new Image();
         img.crossOrigin = "anonymous";
         img.onload = () => {
             setOriginalImage(img);
+            setIsLoading(false);
+        };
+        img.onerror = () => {
+            setIsLoading(false);
         };
         img.src = imageSrc;
     }, [imageSrc]);
@@ -187,6 +194,15 @@ export function CanvasPreview({ imageSrc, settings }: CanvasPreviewProps) {
         setImageRotation((r) => (r + 90) % 360);
     };
 
+    // Keyboard shortcuts
+    useKeyboardShortcuts({
+        onZoomIn: handleZoomIn,
+        onZoomOut: handleZoomOut,
+        onRotateLeft: handleRotateLeft,
+        onRotateRight: handleRotateRight,
+        enabled: !isLoading,
+    });
+
     return (
         <div
             ref={containerRef}
@@ -241,25 +257,39 @@ export function CanvasPreview({ imageSrc, settings }: CanvasPreviewProps) {
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
                 onMouseLeave={handleMouseUp}
+                role="img"
+                aria-label="Watermarked image preview"
             >
+                {/* Loading State */}
+                {isLoading && (
+                    <div className="flex-1 min-h-full flex items-center justify-center">
+                        <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                            <Loader2 className="h-8 w-8 animate-spin" />
+                            <span className="text-sm">Loading image...</span>
+                        </div>
+                    </div>
+                )}
+
                 {/* Inner wrapper to enable proper centering and scrolling */}
-                <div
-                    className="min-w-full min-h-full flex items-center justify-center p-8"
-                    style={{
-                        // Ensure inner container is at least as big as the canvas + padding
-                        minWidth: dimensions.width + 64,
-                        minHeight: dimensions.height + 64,
-                    }}
-                >
-                    <canvas
-                        ref={canvasRef}
-                        className="shadow-lg rounded-lg bg-white pointer-events-none flex-shrink-0"
+                {!isLoading && (
+                    <div
+                        className="min-w-full min-h-full flex items-center justify-center p-8"
                         style={{
-                            width: dimensions.width || "auto",
-                            height: dimensions.height || "auto",
+                            minWidth: dimensions.width + 64,
+                            minHeight: dimensions.height + 64,
                         }}
-                    />
-                </div>
+                    >
+                        <canvas
+                            ref={canvasRef}
+                            className="shadow-lg rounded-lg bg-white pointer-events-none flex-shrink-0"
+                            style={{
+                                width: dimensions.width || "auto",
+                                height: dimensions.height || "auto",
+                            }}
+                            aria-hidden="true"
+                        />
+                    </div>
+                )}
             </div>
         </div>
     );

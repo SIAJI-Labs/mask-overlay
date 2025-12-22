@@ -6,6 +6,17 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import type { WatermarkSettings } from "./CanvasPreview";
 
 interface ControlsSidebarProps {
@@ -245,12 +256,28 @@ export function ControlsSidebar({
 
             {/* Action Buttons */}
             <div className="p-4 border-t bg-muted/10 space-y-2">
-                <Button className="w-full" onClick={onExport}>
+                <Button className="w-full" onClick={onExport} aria-label="Export watermarked image">
                     Export Image
                 </Button>
-                <Button variant="outline" className="w-full" onClick={onReset}>
-                    Reset
-                </Button>
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="outline" className="w-full" aria-label="Reset and upload new image">
+                            Reset
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Reset everything?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This will clear the current image and reset all watermark settings to defaults. You&apos;ll need to upload a new image.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={onReset}>Reset</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </div>
         </aside>
     );
