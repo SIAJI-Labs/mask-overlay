@@ -5,6 +5,7 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { ControlsSidebar } from "@/components/features/ControlsSidebar";
 import { FileUpload } from "@/components/features/FileUpload";
 import { CanvasPreview, WatermarkSettings } from "@/components/features/CanvasPreview";
+import { OfflineIndicator } from "@/components/features/OfflineIndicator";
 
 const DEFAULT_SETTINGS: WatermarkSettings = {
   text: "CONFIDENTIAL",
@@ -85,6 +86,7 @@ export default function Home() {
       ) : (
         <CanvasPreview imageSrc={imageSrc} settings={settings} />
       )}
+      <OfflineIndicator />
     </MainLayout>
   );
 }

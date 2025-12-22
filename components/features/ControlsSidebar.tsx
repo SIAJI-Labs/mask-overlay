@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import React, { useRef } from "react";
+import { Palette } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -38,6 +39,33 @@ const COLOR_PRESETS = [
     { label: "White", value: "#FFFFFF" },
     { label: "Red", value: "#DC2626" },
 ];
+
+// Custom color picker button component
+function ColorPickerButton({ value, onChange }: { value: string; onChange: (color: string) => void }) {
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    return (
+        <div className="relative">
+            <button
+                type="button"
+                className="w-8 h-8 rounded-full border-2 border-dashed border-muted-foreground/50 flex items-center justify-center hover:border-primary transition-colors"
+                onClick={() => inputRef.current?.click()}
+                title="Custom color"
+                aria-label="Pick custom color"
+            >
+                <Palette className="h-4 w-4 text-muted-foreground" />
+            </button>
+            <input
+                ref={inputRef}
+                type="color"
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                className="sr-only"
+                tabIndex={-1}
+            />
+        </div>
+    );
+}
 
 export function ControlsSidebar({
     settings,
@@ -243,12 +271,9 @@ export function ControlsSidebar({
                                 title={color.label}
                             />
                         ))}
-                        <input
-                            type="color"
+                        <ColorPickerButton
                             value={settings.color}
-                            onChange={(e) => onSettingsChange({ color: e.target.value })}
-                            className="w-8 h-8 rounded-full cursor-pointer border-2 border-muted-foreground/30"
-                            title="Custom color"
+                            onChange={(color) => onSettingsChange({ color })}
                         />
                     </div>
                 </div>
