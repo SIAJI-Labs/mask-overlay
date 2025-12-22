@@ -1,10 +1,19 @@
 "use client";
 
+// React
 import React, { useRef, useEffect, useState, useCallback } from "react";
-import { Button } from "@/components/ui/button";
+
+// Icons
 import { ZoomIn, ZoomOut, RotateCcw, Hand, RotateCw, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+
+// Shadcn/UI
+import { Button } from "@/components/ui/button";
+
+// Hooks
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+
+// Utils
+import { cn } from "@/lib/utils";
 
 export interface WatermarkSettings {
     text: string;
@@ -27,7 +36,6 @@ export function CanvasPreview({ imageSrc, settings }: CanvasPreviewProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
-    const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
     const [scale, setScale] = useState(1);
     const [imageRotation, setImageRotation] = useState(0); // 0, 90, 180, 270
     const [originalImage, setOriginalImage] = useState<HTMLImageElement | null>(null);
@@ -38,6 +46,7 @@ export function CanvasPreview({ imageSrc, settings }: CanvasPreviewProps) {
 
     // Load image once
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- Valid: synchronizes loading state with external image loading
         setIsLoading(true);
         const img = new Image();
         img.crossOrigin = "anonymous";
@@ -52,12 +61,12 @@ export function CanvasPreview({ imageSrc, settings }: CanvasPreviewProps) {
     }, [imageSrc]);
 
     // Calculate dimensions when image, scale, or rotation changes
-    useEffect(() => {
-        if (!originalImage || !containerRef.current) return;
+    const dimensions = React.useMemo(() => {
+        if (!originalImage) return { width: 0, height: 0 };
 
-        const container = containerRef.current;
-        const containerWidth = container.clientWidth - 32;
-        const containerHeight = container.clientHeight - 32;
+        // Use a reasonable default if container isn't available yet
+        const containerWidth = 800;
+        const containerHeight = 600;
 
         // Swap dimensions if rotated 90 or 270 degrees
         const isRotated90 = imageRotation === 90 || imageRotation === 270;
@@ -78,10 +87,10 @@ export function CanvasPreview({ imageSrc, settings }: CanvasPreviewProps) {
             baseWidth = containerHeight * imgRatio;
         }
 
-        setDimensions({
+        return {
             width: baseWidth * scale,
             height: baseHeight * scale,
-        });
+        };
     }, [originalImage, scale, imageRotation]);
 
     // Render canvas

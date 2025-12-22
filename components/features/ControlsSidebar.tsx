@@ -1,7 +1,12 @@
 "use client";
 
+// React
 import React, { useRef } from "react";
+
+// Icons
 import { Palette } from "lucide-react";
+
+// Shadcn/UI
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -18,6 +23,8 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+
+// Types
 import type { WatermarkSettings } from "./CanvasPreview";
 
 interface ControlsSidebarProps {

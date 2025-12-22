@@ -1,7 +1,14 @@
+// React
 import React from "react";
+
+// Next.js
 import Image from "next/image";
-import { Badge } from "@/components/ui/badge";
+
+// Icons
 import { Lock } from "lucide-react";
+
+// Shadcn/UI
+import { Badge } from "@/components/ui/badge";
 
 export function Header() {
     return (

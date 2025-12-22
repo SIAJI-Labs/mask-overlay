@@ -1,8 +1,15 @@
+// React
 import React, { useState } from "react";
-import { Header } from "./Header";
+
+// Icons
+import { Settings2 } from "lucide-react";
+
+// Shadcn/UI
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Settings2 } from "lucide-react";
+
+// Components
+import { Header } from "./Header";
 
 interface MainLayoutProps {
     sidebar?: React.ReactNode;

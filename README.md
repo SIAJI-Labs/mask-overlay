@@ -80,12 +80,18 @@ npm run dev
 - **UI Components**: [shadcn/ui](https://ui.shadcn.com/) (New York style)
 - **Icons**: Lucide React
 - **Image Processing**: Canvas API
+- **Testing**: Vitest + Testing Library
+- **PWA**: next-pwa
 
 ## Development
 
 - `npm run dev` - Start development server
 - `npm run build` - Build for production
 - `npm start` - Run production build locally
+- `npm run lint` - Run ESLint
+- `npm run typecheck` - TypeScript type checking
+- `npm run test` - Run tests
+- `npm run test:coverage` - Run tests with coverage report
 
 ## Privacy & Security
 

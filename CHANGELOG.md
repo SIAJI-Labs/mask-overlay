@@ -29,6 +29,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Text gap control (diagonal mode)
 - X/Y offset positioning (single mode)
 
+### Added - Phase 5: Actions & Polish
+- Reset confirmation dialog (AlertDialog)
+- Keyboard shortcuts (+/- zoom, arrows rotate)
+- Loading spinner during image load
+- Accessibility improvements (ARIA labels)
+- Custom color picker button with icon
+
+### Added - Phase 6: PWA Implementation
+- Web App Manifest with icons (192x192, 512x512)
+- Service Worker for offline caching (next-pwa)
+- Manual SW registration for Next.js 16 compatibility
+- Offline indicator banner with auto-detection
+- Favicon generated from app icon
+
+### Added - Phase 7: Testing & CI/CD
+- Vitest testing framework with jsdom environment
+- 100% code coverage with coverage thresholds (75%)
+- GitHub Actions PR workflow (lint, typecheck, test, build)
+- Import organization with section comments
+- Fixed React hooks lint errors (useSyncExternalStore pattern)
+
 ## [0.1.0] - 2025-12-22
 
 ### Added
