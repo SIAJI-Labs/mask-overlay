@@ -89,13 +89,13 @@ npx shadcn@latest add button card input label slider select
 ### Phase 6: PWA Implementation
 **Goal**: Enable offline capability and installability
 
-- [ ] Create Web App Manifest
-- [ ] Implement Service Worker
-- [ ] Add offline support
-- [ ] Create install prompts
-- [ ] Add offline indicator
-- [ ] Generate PWA icons (192x192, 512x512)
-- [ ] Test offline functionality
+- [x] Create Web App Manifest
+- [x] Implement Service Worker (next-pwa)
+- [x] Add offline support
+- [x] Create install prompts
+- [x] Add theme-color and apple-touch-icon
+- [x] Generate PWA icons (192x192, 512x512)
+- [x] Test offline functionality
 
 ### Phase 7: Testing & Launch
 **Goal**: Ensure quality and deploy
