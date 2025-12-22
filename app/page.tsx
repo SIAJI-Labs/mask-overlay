@@ -1,25 +1,75 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, useRef } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { ControlsSidebar } from "@/components/features/ControlsSidebar";
 import { FileUpload } from "@/components/features/FileUpload";
-import { Button } from "@/components/ui/button";
+import { CanvasPreview, WatermarkSettings } from "@/components/features/CanvasPreview";
+
+const DEFAULT_SETTINGS: WatermarkSettings = {
+  text: "CONFIDENTIAL",
+  fontSize: 32,
+  opacity: 50,
+  angle: -30,
+  color: "#000000",
+  mode: "diagonal",
+  gap: 1.5,
+  offsetX: 0,
+  offsetY: 0,
+};
 
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
+  const [imageSrc, setImageSrc] = useState<string | null>(null);
+  const [settings, setSettings] = useState<WatermarkSettings>(DEFAULT_SETTINGS);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  const handleFileSelect = (selectedFile: File) => {
+  const handleFileSelect = useCallback((selectedFile: File) => {
     setFile(selectedFile);
-  };
+    // Convert File to data URL for canvas
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setImageSrc(e.target?.result as string);
+    };
+    reader.readAsDataURL(selectedFile);
+  }, []);
 
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     setFile(null);
-  };
+    setImageSrc(null);
+    setSettings(DEFAULT_SETTINGS);
+  }, []);
+
+  const handleSettingsChange = useCallback((newSettings: Partial<WatermarkSettings>) => {
+    setSettings((prev) => ({ ...prev, ...newSettings }));
+  }, []);
+
+  const handleExport = useCallback(() => {
+    // Get the canvas element from the CanvasPreview
+    const canvas = document.querySelector("canvas");
+    if (!canvas || !file) return;
+
+    const link = document.createElement("a");
+    const ext = file.name.split(".").pop()?.toLowerCase() === "png" ? "png" : "jpeg";
+    link.download = `watermarked-${file.name.replace(/\.[^/.]+$/, "")}.${ext}`;
+    link.href = canvas.toDataURL(`image/${ext}`, 0.95);
+    link.click();
+  }, [file]);
 
   return (
-    <MainLayout sidebar={file ? <ControlsSidebar /> : null}>
-      {!file ? (
+    <MainLayout
+      sidebar={
+        file ? (
+          <ControlsSidebar
+            settings={settings}
+            onSettingsChange={handleSettingsChange}
+            onReset={handleReset}
+            onExport={handleExport}
+          />
+        ) : null
+      }
+    >
+      {!file || !imageSrc ? (
         <div className="flex-1 flex flex-col items-center justify-center p-4 min-h-full">
           <div className="w-full max-w-2xl px-4 animate-in fade-in zoom-in duration-500">
             <div className="text-center mb-8 space-y-2">
@@ -33,22 +83,7 @@ export default function Home() {
           </div>
         </div>
       ) : (
-        <div className="flex-1 flex items-center justify-center p-4 h-full animate-in fade-in duration-300">
-          <div className="text-center p-12 border-2 border-dashed rounded-xl border-muted-foreground/20 bg-muted/10 max-w-md w-full">
-            <div className="bg-primary/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-2xl">📄</span>
-            </div>
-            <h3 className="font-semibold text-lg mb-1">File Loaded</h3>
-            <p className="font-medium mb-6 text-primary break-all">{file.name}</p>
-            <p className="text-sm text-muted-foreground mb-8">Canvas Preview & Controls Coming in Phase 3</p>
-            <Button
-              variant="destructive"
-              onClick={handleReset}
-            >
-              Reset & Upload New
-            </Button>
-          </div>
-        </div>
+        <CanvasPreview imageSrc={imageSrc} settings={settings} />
       )}
     </MainLayout>
   );
