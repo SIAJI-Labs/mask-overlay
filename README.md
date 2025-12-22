@@ -11,19 +11,25 @@ When sharing sensitive documents (IDs, passports, etc.) for verification, you of
 ### MVP Features
 
 - 🖼️ **Drag & Drop Upload**: Easy file upload with drag-and-drop support (PNG, JPG up to 10MB)
-- �️ **Real-time Preview**: Live canvas preview showing exactly what will be exported
+- 🔍 **Advanced Preview Controls**:
+  - Real-time canvas preview showing exactly what will be exported
+  - Zoom in/out (50%-300%) with pan/drag navigation
+  - Image rotation (90° increments) for orientation correction
 - 📝 **Text Customization**: 
   - Custom text input with quick presets (CONFIDENTIAL, FOR VERIFICATION, SAMPLE, DRAFT)
   - Font size control (12-72px)
   - Color picker with presets (Black, White, Red) + custom colors
 - 🎨 **Watermark Patterns**:
-  - **Single Mode**: Centered watermark
-  - **Diagonal Repeat Mode**: Repeating pattern across entire document for maximum security
+  - **Single Mode**: Positioned watermark with X/Y offset control
+  - **Diagonal Repeat Mode**: Repeating pattern with customizable text gap
 - ⚙️ **Fine-tune Controls**:
   - Angle adjustment (-45° to 45°)
   - Transparency/opacity control (0-100%)
+  - Text gap spacing (diagonal mode)
+  - X/Y offset positioning (single mode)
 - 💾 **Export Options**: Download in PNG or JPG format
 - 🔒 **Privacy First**: 100% client-side processing - your documents never leave your device
+- 📱 **Responsive Design**: Mobile-friendly with bottom sheet controls on small screens
 - 📱 **PWA Support**: Install as desktop/mobile app for offline use with zero data transfer
 
 📋 **Full Specifications**: See [.agent/SPECIFICATIONS.md](.agent/SPECIFICATIONS.md) for detailed feature specifications and implementation plan.
@@ -74,12 +80,18 @@ npm run dev
 - **UI Components**: [shadcn/ui](https://ui.shadcn.com/) (New York style)
 - **Icons**: Lucide React
 - **Image Processing**: Canvas API
+- **Testing**: Vitest + Testing Library
+- **PWA**: next-pwa
 
 ## Development
 
 - `npm run dev` - Start development server
 - `npm run build` - Build for production
 - `npm start` - Run production build locally
+- `npm run lint` - Run ESLint
+- `npm run typecheck` - TypeScript type checking
+- `npm run test` - Run tests
+- `npm run test:coverage` - Run tests with coverage report
 
 ## Privacy & Security
 

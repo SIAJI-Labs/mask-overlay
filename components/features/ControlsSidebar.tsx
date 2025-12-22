@@ -1,11 +1,30 @@
 "use client";
 
-import React from "react";
+// React
+import React, { useRef } from "react";
+
+// Icons
+import { Palette } from "lucide-react";
+
+// Shadcn/UI
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
+// Types
 import type { WatermarkSettings } from "./CanvasPreview";
 
 interface ControlsSidebarProps {
@@ -27,6 +46,33 @@ const COLOR_PRESETS = [
     { label: "White", value: "#FFFFFF" },
     { label: "Red", value: "#DC2626" },
 ];
+
+// Custom color picker button component
+function ColorPickerButton({ value, onChange }: { value: string; onChange: (color: string) => void }) {
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    return (
+        <div className="relative">
+            <button
+                type="button"
+                className="w-8 h-8 rounded-full border-2 border-dashed border-muted-foreground/50 flex items-center justify-center hover:border-primary transition-colors"
+                onClick={() => inputRef.current?.click()}
+                title="Custom color"
+                aria-label="Pick custom color"
+            >
+                <Palette className="h-4 w-4 text-muted-foreground" />
+            </button>
+            <input
+                ref={inputRef}
+                type="color"
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                className="sr-only"
+                tabIndex={-1}
+            />
+        </div>
+    );
+}
 
 export function ControlsSidebar({
     settings,
@@ -232,12 +278,9 @@ export function ControlsSidebar({
                                 title={color.label}
                             />
                         ))}
-                        <input
-                            type="color"
+                        <ColorPickerButton
                             value={settings.color}
-                            onChange={(e) => onSettingsChange({ color: e.target.value })}
-                            className="w-8 h-8 rounded-full cursor-pointer border-2 border-muted-foreground/30"
-                            title="Custom color"
+                            onChange={(color) => onSettingsChange({ color })}
                         />
                     </div>
                 </div>
@@ -245,12 +288,28 @@ export function ControlsSidebar({
 
             {/* Action Buttons */}
             <div className="p-4 border-t bg-muted/10 space-y-2">
-                <Button className="w-full" onClick={onExport}>
+                <Button className="w-full" onClick={onExport} aria-label="Export watermarked image">
                     Export Image
                 </Button>
-                <Button variant="outline" className="w-full" onClick={onReset}>
-                    Reset
-                </Button>
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="outline" className="w-full" aria-label="Reset and upload new image">
+                            Reset
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Reset everything?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This will clear the current image and reset all watermark settings to defaults. You&apos;ll need to upload a new image.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={onReset}>Reset</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </div>
         </aside>
     );

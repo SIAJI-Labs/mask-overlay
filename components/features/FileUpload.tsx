@@ -1,9 +1,16 @@
 "use client";
 
+// React
 import React, { useCallback, useState } from "react";
+
+// Icons
 import { Upload, AlertCircle } from "lucide-react";
-import { cn } from "@/lib/utils";
+
+// Shadcn/UI
 import { Card } from "@/components/ui/card";
+
+// Utils
+import { cn } from "@/lib/utils";
 
 interface FileUploadProps {
     onFileSelect: (file: File) => void;

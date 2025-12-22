@@ -1,8 +1,18 @@
 "use client";
 
+// React
 import React, { useRef, useEffect, useState, useCallback } from "react";
+
+// Icons
+import { ZoomIn, ZoomOut, RotateCcw, Hand, RotateCw, Loader2 } from "lucide-react";
+
+// Shadcn/UI
 import { Button } from "@/components/ui/button";
-import { ZoomIn, ZoomOut, RotateCcw, Hand, RotateCw } from "lucide-react";
+
+// Hooks
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+
+// Utils
 import { cn } from "@/lib/utils";
 
 export interface WatermarkSettings {
@@ -26,31 +36,37 @@ export function CanvasPreview({ imageSrc, settings }: CanvasPreviewProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
-    const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
     const [scale, setScale] = useState(1);
     const [imageRotation, setImageRotation] = useState(0); // 0, 90, 180, 270
     const [originalImage, setOriginalImage] = useState<HTMLImageElement | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
     const [isPanning, setIsPanning] = useState(false);
     const [panStart, setPanStart] = useState({ x: 0, y: 0 });
     const [scrollStart, setScrollStart] = useState({ x: 0, y: 0 });
 
     // Load image once
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- Valid: synchronizes loading state with external image loading
+        setIsLoading(true);
         const img = new Image();
         img.crossOrigin = "anonymous";
         img.onload = () => {
             setOriginalImage(img);
+            setIsLoading(false);
+        };
+        img.onerror = () => {
+            setIsLoading(false);
         };
         img.src = imageSrc;
     }, [imageSrc]);
 
     // Calculate dimensions when image, scale, or rotation changes
-    useEffect(() => {
-        if (!originalImage || !containerRef.current) return;
+    const dimensions = React.useMemo(() => {
+        if (!originalImage) return { width: 0, height: 0 };
 
-        const container = containerRef.current;
-        const containerWidth = container.clientWidth - 32;
-        const containerHeight = container.clientHeight - 32;
+        // Use a reasonable default if container isn't available yet
+        const containerWidth = 800;
+        const containerHeight = 600;
 
         // Swap dimensions if rotated 90 or 270 degrees
         const isRotated90 = imageRotation === 90 || imageRotation === 270;
@@ -71,10 +87,10 @@ export function CanvasPreview({ imageSrc, settings }: CanvasPreviewProps) {
             baseWidth = containerHeight * imgRatio;
         }
 
-        setDimensions({
+        return {
             width: baseWidth * scale,
             height: baseHeight * scale,
-        });
+        };
     }, [originalImage, scale, imageRotation]);
 
     // Render canvas
@@ -187,6 +203,15 @@ export function CanvasPreview({ imageSrc, settings }: CanvasPreviewProps) {
         setImageRotation((r) => (r + 90) % 360);
     };
 
+    // Keyboard shortcuts
+    useKeyboardShortcuts({
+        onZoomIn: handleZoomIn,
+        onZoomOut: handleZoomOut,
+        onRotateLeft: handleRotateLeft,
+        onRotateRight: handleRotateRight,
+        enabled: !isLoading,
+    });
+
     return (
         <div
             ref={containerRef}
@@ -241,25 +266,39 @@ export function CanvasPreview({ imageSrc, settings }: CanvasPreviewProps) {
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
                 onMouseLeave={handleMouseUp}
+                role="img"
+                aria-label="Watermarked image preview"
             >
+                {/* Loading State */}
+                {isLoading && (
+                    <div className="flex-1 min-h-full flex items-center justify-center">
+                        <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                            <Loader2 className="h-8 w-8 animate-spin" />
+                            <span className="text-sm">Loading image...</span>
+                        </div>
+                    </div>
+                )}
+
                 {/* Inner wrapper to enable proper centering and scrolling */}
-                <div
-                    className="min-w-full min-h-full flex items-center justify-center p-8"
-                    style={{
-                        // Ensure inner container is at least as big as the canvas + padding
-                        minWidth: dimensions.width + 64,
-                        minHeight: dimensions.height + 64,
-                    }}
-                >
-                    <canvas
-                        ref={canvasRef}
-                        className="shadow-lg rounded-lg bg-white pointer-events-none flex-shrink-0"
+                {!isLoading && (
+                    <div
+                        className="min-w-full min-h-full flex items-center justify-center p-8"
                         style={{
-                            width: dimensions.width || "auto",
-                            height: dimensions.height || "auto",
+                            minWidth: dimensions.width + 64,
+                            minHeight: dimensions.height + 64,
                         }}
-                    />
-                </div>
+                    >
+                        <canvas
+                            ref={canvasRef}
+                            className="shadow-lg rounded-lg bg-white pointer-events-none flex-shrink-0"
+                            style={{
+                                width: dimensions.width || "auto",
+                                height: dimensions.height || "auto",
+                            }}
+                            aria-hidden="true"
+                        />
+                    </div>
+                )}
             </div>
         </div>
     );

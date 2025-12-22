@@ -1,10 +1,16 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+// React
+import { useState, useCallback } from "react";
+
+// Layout
 import { MainLayout } from "@/components/layout/MainLayout";
+
+// Features
 import { ControlsSidebar } from "@/components/features/ControlsSidebar";
 import { FileUpload } from "@/components/features/FileUpload";
 import { CanvasPreview, WatermarkSettings } from "@/components/features/CanvasPreview";
+import { OfflineIndicator } from "@/components/features/OfflineIndicator";
 
 const DEFAULT_SETTINGS: WatermarkSettings = {
   text: "CONFIDENTIAL",
@@ -22,7 +28,6 @@ export default function Home() {
   const [file, setFile] = useState<File | null>(null);
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [settings, setSettings] = useState<WatermarkSettings>(DEFAULT_SETTINGS);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const handleFileSelect = useCallback((selectedFile: File) => {
     setFile(selectedFile);
@@ -85,6 +90,7 @@ export default function Home() {
       ) : (
         <CanvasPreview imageSrc={imageSrc} settings={settings} />
       )}
+      <OfflineIndicator />
     </MainLayout>
   );
 }

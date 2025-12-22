@@ -7,12 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Planning Phase
-- Complete project specifications defined
-- UI mockups and wireframes created
-- Development phases outlined
-- Contributing guidelines established
-- PWA architecture planned
+### Added - Phase 2: UI Foundation
+- Responsive layout with Header, MainLayout, and ControlsSidebar
+- File upload with drag-and-drop and validation (PNG/JPG, max 10MB)
+- Mobile-friendly bottom sheet for controls (via shadcn/ui Sheet)
+- shadcn/ui components: button, card, input, label, slider, select, sheet
+
+### Added - Phase 3: Canvas & Preview
+- CanvasPreview component with HTML5 Canvas API
+- Image rendering with aspect ratio maintenance
+- Watermark overlay (single + diagonal repeat modes)
+- Zoom controls (50%-300%) with pan/drag navigation
+- Image rotation (0°/90°/180°/270°)
+- Export functionality (PNG/JPG download)
+
+### Added - Phase 4: Core Controls
+- Text input with 50-char limit and presets
+- Pattern mode toggle (Single / Diagonal Repeat)
+- Font size, opacity, and angle sliders
+- Color picker with presets + custom colors
+- Text gap control (diagonal mode)
+- X/Y offset positioning (single mode)
+
+### Added - Phase 5: Actions & Polish
+- Reset confirmation dialog (AlertDialog)
+- Keyboard shortcuts (+/- zoom, arrows rotate)
+- Loading spinner during image load
+- Accessibility improvements (ARIA labels)
+- Custom color picker button with icon
+
+### Added - Phase 6: PWA Implementation
+- Web App Manifest with icons (192x192, 512x512)
+- Service Worker for offline caching (next-pwa)
+- Manual SW registration for Next.js 16 compatibility
+- Offline indicator banner with auto-detection
+- Favicon generated from app icon
+
+### Added - Phase 7: Testing & CI/CD
+- Vitest testing framework with jsdom environment
+- 100% code coverage with coverage thresholds (75%)
+- GitHub Actions PR workflow (lint, typecheck, test, build)
+- Import organization with section comments
+- Fixed React hooks lint errors (useSyncExternalStore pattern)
 
 ## [0.1.0] - 2025-12-22
 
