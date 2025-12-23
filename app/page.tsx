@@ -20,6 +20,9 @@ import { FileItem, WatermarkSettings, DEFAULT_SETTINGS, ExportMode } from "@/typ
 import { downloadSingle, downloadBulk, downloadZip, getExportFilename, getCanvasDataUrl, ExportableFile } from "@/lib/exportUtils";
 import { renderToCanvas } from "@/lib/renderUtils";
 
+// Hooks
+import { useTemplates } from "@/hooks/useTemplates";
+
 // Utility to generate unique IDs
 const generateId = () => crypto.randomUUID();
 
@@ -29,11 +32,21 @@ export default function Home() {
   const [exportMode, setExportMode] = useState<ExportMode>("single");
   const [isAddingMore, setIsAddingMore] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [currentTemplateId, setCurrentTemplateId] = useState<string | null>(null);
+  const [templateOriginalSettings, setTemplateOriginalSettings] = useState<WatermarkSettings | null>(null);
+
+  // Template management
+  const { templates, saveTemplate, updateTemplate, renameTemplate, deleteTemplate } = useTemplates();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Get the currently active file
   const activeFile = files[activeIndex] ?? null;
+
+  // Check if settings have changed from the loaded template
+  const templateHasChanges = currentTemplateId && templateOriginalSettings && activeFile
+    ? JSON.stringify(activeFile.settings) !== JSON.stringify(templateOriginalSettings)
+    : false;
 
   // Handle initial file selection or adding more files
   const handleFilesSelect = useCallback((selectedFiles: File[]) => {
@@ -117,6 +130,59 @@ export default function Home() {
     setExportMode(mode);
   }, []);
 
+  // Handle loading a template (applies settings to active file)
+  const handleLoadTemplate = useCallback((settings: WatermarkSettings, templateId: string) => {
+    setFiles((prev) =>
+      prev.map((f, i) =>
+        i === activeIndex ? { ...f, settings } : f
+      )
+    );
+    setCurrentTemplateId(templateId);
+    setTemplateOriginalSettings({ ...settings });
+  }, [activeIndex]);
+
+  // Handle saving current settings as a template
+  const handleSaveTemplate = useCallback((name: string) => {
+    if (activeFile) {
+      const newTemplate = saveTemplate(name, activeFile.settings);
+      setCurrentTemplateId(newTemplate.id);
+      setTemplateOriginalSettings({ ...activeFile.settings });
+    }
+  }, [activeFile, saveTemplate]);
+
+  // Handle updating a template with current settings
+  const handleUpdateTemplate = useCallback((id: string) => {
+    if (activeFile) {
+      updateTemplate(id, activeFile.settings);
+      setTemplateOriginalSettings({ ...activeFile.settings });
+    }
+  }, [activeFile, updateTemplate]);
+
+  // Handle discarding template changes (revert to original)
+  const handleDiscardTemplate = useCallback(() => {
+    if (templateOriginalSettings) {
+      setFiles((prev) =>
+        prev.map((f, i) =>
+          i === activeIndex ? { ...f, settings: { ...templateOriginalSettings } } : f
+        )
+      );
+    }
+  }, [activeIndex, templateOriginalSettings]);
+
+  // Handle renaming a template
+  const handleRenameTemplate = useCallback((id: string, newName: string) => {
+    renameTemplate(id, newName);
+  }, [renameTemplate]);
+
+  // Handle deleting a template
+  const handleDeleteTemplate = useCallback((id: string) => {
+    deleteTemplate(id);
+    // Clear current template if it was deleted
+    if (currentTemplateId === id) {
+      setCurrentTemplateId(null);
+    }
+  }, [deleteTemplate, currentTemplateId]);
+
   // Handle export based on mode
   const handleExport = useCallback(async () => {
     if (isExporting) return;
@@ -182,6 +248,15 @@ export default function Home() {
             onExportModeChange={handleExportModeChange}
             fileCount={files.length}
             isExporting={isExporting}
+            templates={templates}
+            currentTemplateId={currentTemplateId}
+            templateHasChanges={templateHasChanges}
+            onLoadTemplate={handleLoadTemplate}
+            onSaveTemplate={handleSaveTemplate}
+            onUpdateTemplate={handleUpdateTemplate}
+            onDiscardTemplate={handleDiscardTemplate}
+            onRenameTemplate={handleRenameTemplate}
+            onDeleteTemplate={handleDeleteTemplate}
           />
         ) : null
       }
