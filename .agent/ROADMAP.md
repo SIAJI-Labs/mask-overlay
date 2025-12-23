@@ -125,12 +125,12 @@ npx shadcn@latest add button card input label slider select
 ### Phase 9: Overlay Templates (Save/Load)
 **Goal**: Allow users to save and reuse watermark configurations
 
-- [ ] Create `useTemplates` hook for localStorage CRUD
-- [ ] Build TemplateManager component (list, save, load, delete)
-- [ ] Add "Save as Template" button to sidebar
-- [ ] Add "Load Template" dropdown to sidebar
-- [ ] Migrate existing presets to template system
-- [ ] Unit tests for template persistence
+- [x] Create `useTemplates` hook for localStorage CRUD
+- [x] Build TemplateManager component (list, save, load, delete)
+- [x] Add "Save as Template" button to sidebar
+- [x] Add "Load Template" dropdown to sidebar
+- [x] Migrate existing presets to template system
+- [x] Unit tests for template persistence
 
 ### Phase 10: Multiple Overlay Layers
 **Goal**: Support multiple watermark layers (single mode only)
@@ -146,11 +146,11 @@ npx shadcn@latest add button card input label slider select
 ### Phase 11: Dark Mode
 **Goal**: System-aware theming with manual toggle
 
-- [ ] Create `useTheme` hook (detect, toggle, persist)
-- [ ] Build ThemeToggle component (sun/moon icon)
-- [ ] Add toggle to header/MainLayout
-- [ ] Audit and update component styles for dark mode
-- [ ] Verify PWA theme-color meta updates
+- [x] Create `useTheme` hook (detect, toggle, persist)
+- [x] Build ThemeToggle component (sun/moon icon)
+- [x] Add toggle to header/MainLayout
+- [x] Audit and update component styles for dark mode
+- [x] Verify PWA theme-color meta updates
 
 ## Feature Ideas (Future)
 

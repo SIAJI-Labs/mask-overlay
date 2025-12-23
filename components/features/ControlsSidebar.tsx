@@ -26,6 +26,8 @@ import {
 
 // Types
 import type { WatermarkSettings, ExportMode } from "@/types/files";
+import type { Template } from "@/types/templates";
+import { TemplateManager } from "./TemplateManager";
 
 interface ControlsSidebarProps {
     settings: WatermarkSettings;
@@ -36,14 +38,16 @@ interface ControlsSidebarProps {
     onExportModeChange?: (mode: ExportMode) => void;
     fileCount?: number;
     isExporting?: boolean;
+    templates?: Template[];
+    currentTemplateId?: string | null;
+    templateHasChanges?: boolean;
+    onLoadTemplate?: (settings: WatermarkSettings, templateId: string) => void;
+    onSaveTemplate?: (name: string) => void;
+    onUpdateTemplate?: (id: string) => void;
+    onDiscardTemplate?: () => void;
+    onRenameTemplate?: (id: string, newName: string) => void;
+    onDeleteTemplate?: (id: string) => void;
 }
-
-const PRESETS = [
-    { label: "CONFIDENTIAL", value: "CONFIDENTIAL" },
-    { label: "FOR VERIFICATION ONLY", value: "FOR VERIFICATION ONLY" },
-    { label: "SAMPLE", value: "SAMPLE" },
-    { label: "DRAFT", value: "DRAFT" },
-];
 
 const COLOR_PRESETS = [
     { label: "Black", value: "#000000" },
@@ -87,6 +91,15 @@ export function ControlsSidebar({
     onExportModeChange,
     fileCount = 1,
     isExporting = false,
+    templates = [],
+    currentTemplateId,
+    templateHasChanges,
+    onLoadTemplate,
+    onSaveTemplate,
+    onUpdateTemplate,
+    onDiscardTemplate,
+    onRenameTemplate,
+    onDeleteTemplate,
 }: ControlsSidebarProps) {
     return (
         <aside className="w-full h-full bg-background flex flex-col">
@@ -96,23 +109,23 @@ export function ControlsSidebar({
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-6">
-                {/* Quick Presets */}
-                <div className="space-y-3">
-                    <Label className="text-sm font-medium">Quick Presets</Label>
-                    <div className="grid grid-cols-2 gap-2">
-                        {PRESETS.map((preset) => (
-                            <Button
-                                key={preset.value}
-                                variant={settings.text === preset.value ? "default" : "outline"}
-                                size="sm"
-                                className="text-xs h-8"
-                                onClick={() => onSettingsChange({ text: preset.value })}
-                            >
-                                {preset.label}
-                            </Button>
-                        ))}
+                {/* Templates */}
+                {onLoadTemplate && onSaveTemplate && onUpdateTemplate && onDiscardTemplate && onRenameTemplate && onDeleteTemplate && (
+                    <div className="space-y-3">
+                        <Label className="text-sm font-medium">Templates</Label>
+                        <TemplateManager
+                            templates={templates}
+                            currentTemplateId={currentTemplateId}
+                            hasChanges={templateHasChanges}
+                            onLoad={onLoadTemplate}
+                            onSave={onSaveTemplate}
+                            onUpdate={onUpdateTemplate}
+                            onDiscard={onDiscardTemplate}
+                            onRename={onRenameTemplate}
+                            onDelete={onDeleteTemplate}
+                        />
                     </div>
-                </div>
+                )}
 
                 <Separator />
 

@@ -10,6 +10,9 @@ import { Lock } from "lucide-react";
 // Shadcn/UI
 import { Badge } from "@/components/ui/badge";
 
+// Features
+import { ThemeToggle } from "@/components/features/ThemeToggle";
+
 export function Header() {
     return (
         <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -28,8 +31,9 @@ export function Header() {
                 <div className="flex items-center gap-2">
                     <Badge variant="secondary" className="flex items-center gap-1.5 text-xs sm:text-sm font-normal py-1.5 h-7">
                         <Lock className="h-3.5 w-3.5 text-green-600 mb-[1px]" />
-                        <span className="text-green-700 font-medium leading-none">100% Offline • No Upload</span>
+                        <span className="text-green-700 dark:text-green-400 font-medium leading-none">100% Offline • No Upload</span>
                     </Badge>
+                    <ThemeToggle />
                 </div>
             </div>
         </header>
