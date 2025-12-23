@@ -111,16 +111,16 @@ npx shadcn@latest add button card input label slider select
 ### Phase 8: Multi-File Upload Support
 **Goal**: Enable batch processing with WhatsApp-style carousel preview
 
-- [ ] Modify FileUpload to accept multiple files (max 5)
-- [ ] Create FileCarousel component (thumbnail strip with add/remove)
-- [ ] Update state management for file array with per-file settings
-- [ ] Implement shared-by-default, per-file-override settings logic
-- [ ] Add export mode selection (Single / Bulk / ZIP)
-- [ ] Integrate JSZip for compressed export
-- [ ] Create export utility functions (`downloadBulk`, `downloadZip`)
-- [ ] Update ControlsSidebar with export options
-- [ ] Mobile-responsive carousel design
-- [ ] Unit & component tests for new functionality
+- [x] Modify FileUpload to accept multiple files (max 5)
+- [x] Create FileCarousel component (thumbnail strip with add/remove)
+- [x] Update state management for file array with per-file settings
+- [x] Implement shared-by-default, per-file-override settings logic
+- [x] Add export mode selection (Single / Bulk / ZIP)
+- [x] Integrate JSZip for compressed export
+- [x] Create export utility functions (`downloadBulk`, `downloadZip`)
+- [x] Update ControlsSidebar with export options
+- [x] Mobile-responsive carousel design
+- [x] Unit & component tests for new functionality
 
 ### Phase 9: Overlay Templates (Save/Load)
 **Goal**: Allow users to save and reuse watermark configurations

@@ -12,44 +12,66 @@ import { Card } from "@/components/ui/card";
 // Utils
 import { cn } from "@/lib/utils";
 
+// Types
+import { MAX_FILES } from "@/types/files";
+
 interface FileUploadProps {
-    onFileSelect: (file: File) => void;
+    onFilesSelect: (files: File[]) => void;
+    currentFileCount?: number;
 }
 
-export function FileUpload({ onFileSelect }: FileUploadProps) {
+export function FileUpload({ onFilesSelect, currentFileCount = 0 }: FileUploadProps) {
     const [isDragOver, setIsDragOver] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const validateFile = (file: File): boolean => {
-        // Check type
-        if (!["image/png", "image/jpeg", "image/jpg"].includes(file.type)) {
-            setError("Only PNG and JPG files are supported");
-            return false;
+    const remainingSlots = MAX_FILES - currentFileCount;
+
+    const validateFiles = useCallback((files: File[]): File[] => {
+        const validFiles: File[] = [];
+
+        // Check remaining slots
+        if (files.length > remainingSlots) {
+            setError(`You can only add ${remainingSlots} more file${remainingSlots !== 1 ? 's' : ''} (max ${MAX_FILES})`);
+            return [];
         }
 
-        // Check size (10MB)
-        if (file.size > 10 * 1024 * 1024) {
-            setError("File size must be less than 10MB");
-            return false;
+        for (const file of files) {
+            // Check type
+            if (!["image/png", "image/jpeg", "image/jpg"].includes(file.type)) {
+                setError("Only PNG and JPG files are supported");
+                continue;
+            }
+
+            // Check size (10MB)
+            if (file.size > 10 * 1024 * 1024) {
+                setError("File size must be less than 10MB");
+                continue;
+            }
+
+            validFiles.push(file);
         }
 
-        setError(null);
-        return true;
-    };
+        if (validFiles.length > 0 && validFiles.length === files.length) {
+            setError(null);
+        }
+
+        return validFiles;
+    }, [remainingSlots]);
 
     const handleDrop = useCallback(
         (e: React.DragEvent<HTMLDivElement>) => {
             e.preventDefault();
             setIsDragOver(false);
 
-            if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-                const file = e.dataTransfer.files[0];
-                if (validateFile(file)) {
-                    onFileSelect(file);
+            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                const filesArray = Array.from(e.dataTransfer.files);
+                const validFiles = validateFiles(filesArray);
+                if (validFiles.length > 0) {
+                    onFilesSelect(validFiles);
                 }
             }
         },
-        [onFileSelect]
+        [onFilesSelect, validateFiles]
     );
 
     const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
@@ -64,14 +86,17 @@ export function FileUpload({ onFileSelect }: FileUploadProps) {
 
     const handleFileInput = useCallback(
         (e: React.ChangeEvent<HTMLInputElement>) => {
-            if (e.target.files && e.target.files[0]) {
-                const file = e.target.files[0];
-                if (validateFile(file)) {
-                    onFileSelect(file);
+            if (e.target.files && e.target.files.length > 0) {
+                const filesArray = Array.from(e.target.files);
+                const validFiles = validateFiles(filesArray);
+                if (validFiles.length > 0) {
+                    onFilesSelect(validFiles);
                 }
+                // Reset input so the same file can be selected again
+                e.target.value = '';
             }
         },
-        [onFileSelect]
+        [onFilesSelect, validateFiles]
     );
 
     return (
@@ -92,6 +117,7 @@ export function FileUpload({ onFileSelect }: FileUploadProps) {
                     type="file"
                     className="hidden"
                     accept="image/png, image/jpeg, image/jpg"
+                    multiple
                     onChange={handleFileInput}
                 />
 
@@ -105,17 +131,19 @@ export function FileUpload({ onFileSelect }: FileUploadProps) {
                 </div>
 
                 <h3 className="text-lg font-semibold mb-2">
-                    {isDragOver ? "Drop image here" : "Upload an image"}
+                    {isDragOver ? "Drop images here" : "Upload images"}
                 </h3>
 
                 <p className="text-sm text-muted-foreground mb-4 max-w-xs mx-auto">
-                    Drag and drop your document here, or click to browse files
+                    Drag and drop your documents here, or click to browse files
                 </p>
 
                 <div className="flex items-center gap-2 text-xs text-muted-foreground/75 bg-muted/30 px-3 py-1.5 rounded-full">
                     <span>PNG, JPG</span>
                     <span className="w-1 h-1 rounded-full bg-muted-foreground/50" />
-                    <span>Max 10MB</span>
+                    <span>Max 10MB each</span>
+                    <span className="w-1 h-1 rounded-full bg-muted-foreground/50" />
+                    <span>Up to {MAX_FILES} files</span>
                 </div>
 
                 {error && (
