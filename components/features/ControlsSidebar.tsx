@@ -4,7 +4,7 @@
 import React, { useRef } from "react";
 
 // Icons
-import { Palette } from "lucide-react";
+import { Palette, Download, FileArchive, Files, Loader2 } from "lucide-react";
 
 // Shadcn/UI
 import { Input } from "@/components/ui/input";
@@ -25,13 +25,17 @@ import {
 } from "@/components/ui/alert-dialog";
 
 // Types
-import type { WatermarkSettings } from "./CanvasPreview";
+import type { WatermarkSettings, ExportMode } from "@/types/files";
 
 interface ControlsSidebarProps {
     settings: WatermarkSettings;
     onSettingsChange: (settings: Partial<WatermarkSettings>) => void;
     onReset: () => void;
     onExport: () => void;
+    exportMode?: ExportMode;
+    onExportModeChange?: (mode: ExportMode) => void;
+    fileCount?: number;
+    isExporting?: boolean;
 }
 
 const PRESETS = [
@@ -79,6 +83,10 @@ export function ControlsSidebar({
     onSettingsChange,
     onReset,
     onExport,
+    exportMode = "single",
+    onExportModeChange,
+    fileCount = 1,
+    isExporting = false,
 }: ControlsSidebarProps) {
     return (
         <aside className="w-full h-full bg-background flex flex-col">
@@ -287,9 +295,64 @@ export function ControlsSidebar({
             </div>
 
             {/* Action Buttons */}
-            <div className="p-4 border-t bg-muted/10 space-y-2">
-                <Button className="w-full" onClick={onExport} aria-label="Export watermarked image">
-                    Export Image
+            <div className="p-4 border-t bg-muted/10 space-y-3">
+                {/* Export Mode Selection (only show for multiple files) */}
+                {fileCount > 1 && onExportModeChange && (
+                    <div className="space-y-2">
+                        <Label className="text-sm font-medium">Export Mode</Label>
+                        <div className="grid grid-cols-3 gap-1">
+                            <Button
+                                variant={exportMode === "single" ? "default" : "outline"}
+                                size="sm"
+                                className="text-xs h-8 px-2"
+                                onClick={() => onExportModeChange("single")}
+                                title="Export current image only"
+                            >
+                                <Download className="w-3 h-3 mr-1" />
+                                Current
+                            </Button>
+                            <Button
+                                variant={exportMode === "bulk" ? "default" : "outline"}
+                                size="sm"
+                                className="text-xs h-8 px-2"
+                                onClick={() => onExportModeChange("bulk")}
+                                title="Download all files separately"
+                            >
+                                <Files className="w-3 h-3 mr-1" />
+                                All ({fileCount})
+                            </Button>
+                            <Button
+                                variant={exportMode === "zip" ? "default" : "outline"}
+                                size="sm"
+                                className="text-xs h-8 px-2"
+                                onClick={() => onExportModeChange("zip")}
+                                title="Download all as ZIP archive"
+                            >
+                                <FileArchive className="w-3 h-3 mr-1" />
+                                ZIP
+                            </Button>
+                        </div>
+                    </div>
+                )}
+
+                <Button
+                    className="w-full"
+                    onClick={onExport}
+                    disabled={isExporting}
+                    aria-label="Export watermarked image"
+                >
+                    {isExporting ? (
+                        <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Exporting...
+                        </>
+                    ) : (
+                        exportMode === "single" || fileCount === 1
+                            ? "Export Image"
+                            : exportMode === "bulk"
+                                ? `Export All (${fileCount})`
+                                : "Export as ZIP"
+                    )}
                 </Button>
                 <AlertDialog>
                     <AlertDialogTrigger asChild>
@@ -301,7 +364,7 @@ export function ControlsSidebar({
                         <AlertDialogHeader>
                             <AlertDialogTitle>Reset everything?</AlertDialogTitle>
                             <AlertDialogDescription>
-                                This will clear the current image and reset all watermark settings to defaults. You&apos;ll need to upload a new image.
+                                This will clear {fileCount > 1 ? `all ${fileCount} images` : "the current image"} and reset all watermark settings to defaults. You&apos;ll need to upload new images.
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>

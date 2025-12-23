@@ -15,17 +15,8 @@ import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 // Utils
 import { cn } from "@/lib/utils";
 
-export interface WatermarkSettings {
-    text: string;
-    fontSize: number;
-    opacity: number;
-    angle: number;
-    color: string;
-    mode: "single" | "diagonal";
-    gap: number;
-    offsetX: number; // -50 to 50 percent offset
-    offsetY: number; // -50 to 50 percent offset
-}
+// Types
+import type { WatermarkSettings } from "@/types/files";
 
 interface CanvasPreviewProps {
     imageSrc: string;
