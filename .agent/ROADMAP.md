@@ -108,14 +108,52 @@ npx shadcn@latest add button card input label slider select
 - [x] Documentation finalization
 - [x] Launch! 🚀
 
+### Phase 8: Multi-File Upload Support
+**Goal**: Enable batch processing with WhatsApp-style carousel preview
+
+- [ ] Modify FileUpload to accept multiple files (max 5)
+- [ ] Create FileCarousel component (thumbnail strip with add/remove)
+- [ ] Update state management for file array with per-file settings
+- [ ] Implement shared-by-default, per-file-override settings logic
+- [ ] Add export mode selection (Single / Bulk / ZIP)
+- [ ] Integrate JSZip for compressed export
+- [ ] Create export utility functions (`downloadBulk`, `downloadZip`)
+- [ ] Update ControlsSidebar with export options
+- [ ] Mobile-responsive carousel design
+- [ ] Unit & component tests for new functionality
+
+### Phase 9: Overlay Templates (Save/Load)
+**Goal**: Allow users to save and reuse watermark configurations
+
+- [ ] Create `useTemplates` hook for localStorage CRUD
+- [ ] Build TemplateManager component (list, save, load, delete)
+- [ ] Add "Save as Template" button to sidebar
+- [ ] Add "Load Template" dropdown to sidebar
+- [ ] Migrate existing presets to template system
+- [ ] Unit tests for template persistence
+
+### Phase 10: Multiple Overlay Layers
+**Goal**: Support multiple watermark layers (single mode only)
+
+- [ ] Refactor settings to layers array structure
+- [ ] Create LayerPanel component (add/remove/select)
+- [ ] Update CanvasPreview to render multiple layers
+- [ ] Add layer indicator in ControlsSidebar
+- [ ] Auto-switch to single mode when layers > 1
+- [ ] Show warning if diagonal mode with multiple layers
+- [ ] Layer reordering (optional: drag-and-drop)
+
+### Phase 11: Dark Mode
+**Goal**: System-aware theming with manual toggle
+
+- [ ] Create `useTheme` hook (detect, toggle, persist)
+- [ ] Build ThemeToggle component (sun/moon icon)
+- [ ] Add toggle to header/MainLayout
+- [ ] Audit and update component styles for dark mode
+- [ ] Verify PWA theme-color meta updates
+
 ## Feature Ideas (Future)
 
-- 🎨 Pre-defined overlay templates
-- 📐 Multiple overlay layers
-- 🔄 Batch processing for multiple documents
-- 💾 Save/load overlay configurations
-- 🌙 Dark mode support
-- 📱 Mobile-optimized interface
 - 🖼️ PDF support (input and output)
 
 ## Technical Considerations
