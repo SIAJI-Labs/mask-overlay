@@ -152,6 +152,24 @@ npx shadcn@latest add button card input label slider select
 - [x] Audit and update component styles for dark mode
 - [x] Verify PWA theme-color meta updates
 
+### Phase 12: Landing Page & Restructuring
+**Goal**: Create a dedicated landing page and improve application structure
+
+- [x] Move main application to `/app` route
+- [x] Create marketing landing page at root `/`
+- [x] Implement "How it works" and features section
+- [x] Update navigation and internal links
+- [x] Verify routing and SEO structure
+
+### Phase 13: Landing Page Content Expansion
+**Goal**: Enhance landing page with rich content and trust signals
+
+- [x] Add "Who is this for?" Use Cases section
+- [x] Create Technical Security Deep Dive
+- [x] Implement FAQ section with Accordion
+- [x] Add "Ready to secure?" CTA
+- [x] Improve responsiveness for new sections
+
 ## Feature Ideas (Future)
 
 - 🖼️ PDF support (input and output)
