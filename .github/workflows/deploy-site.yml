@@ -145,30 +145,39 @@ jobs:
             # Navigate to site root path
             cd "$SITE_ROOT_PATH"
 
+            # Check if this is initial deployment
+            IS_INITIAL_DEPLOYMENT=false
+            if [ ! -d "public" ] && [ ! -d "backups" ]; then
+              echo "📍 Detected initial deployment"
+              IS_INITIAL_DEPLOYMENT=true
+            fi
+
             # Backup current deployment if it exists
             if [ -d "public" ]; then
               echo "📦 Creating backup of current deployment..."
               BACKUP_NAME="backup-$(date +%Y%m%d-%H%M%S)"
-              mkdir -p "$SITE_ROOT_PATH/backups"
-              cp -r "public" "$SITE_ROOT_PATH/backups/$BACKUP_NAME"
+              sudo -u www mkdir -p "$SITE_ROOT_PATH/backups"
+              sudo -u www cp -r "public" "$SITE_ROOT_PATH/backups/$BACKUP_NAME"
               echo "✅ Backup created: $BACKUP_NAME"
 
               # Cleanup old backups (keep only 5 latest)
               echo "🧹 Cleaning up old backups (keeping latest 5)..."
-              cd "$SITE_ROOT_PATH/backups" && ls -1t | tail -n +6 | xargs -r rm -rf
+              sudo -u www bash -c "cd '$SITE_ROOT_PATH/backups' && ls -1t | tail -n +6 | xargs -r rm -rf"
               echo "✅ Backup cleanup completed"
             else
               echo "ℹ️ No existing public directory found to backup"
             fi
 
-            # Clean up current public directory
-            echo "🧹 Cleaning up current public directory..."
-            rm -rf "$SITE_ROOT_PATH/public/"
-            echo "✅ Public directory cleanup completed"
+            # Clean up current public directory if exists
+            if [ -d "public" ]; then
+              echo "🧹 Cleaning up current public directory..."
+              sudo -u www rm -rf "$SITE_ROOT_PATH/public/"
+              echo "✅ Public directory cleanup completed"
+            fi
 
             # Create deployment info
             echo "📊 Creating deployment-info.json..."
-            tee "$SITE_ROOT_PATH/deployment-info.json" > /dev/null <<EOF
+            sudo -u www tee "$SITE_ROOT_PATH/deployment-info.json" > /dev/null <<EOF
             {
               "version": "$VERSION",
               "release_url": "$RELEASE_URL",
@@ -184,13 +193,13 @@ jobs:
             # Download artifact directly from GitHub to server
             echo "📥 Downloading artifact: $ARTIFACT_NAME"
             ARTIFACT_FILE="artifact.tar.gz"
-            curl -L -H "Authorization: token $GITHUB_TOKEN" \
+            sudo -u www curl -L -H "Authorization: token $GITHUB_TOKEN" \
               "$ARTIFACT_URL" -o "$ARTIFACT_FILE"
 
             # Extract artifact
             echo "📂 Extracting artifact to $SITE_ROOT_PATH..."
-            tar -xzf "$ARTIFACT_FILE"
-            rm "$ARTIFACT_FILE"
+            sudo -u www tar -xzf "$ARTIFACT_FILE"
+            sudo -u www rm "$ARTIFACT_FILE"
 
             # Verify extraction
             if [ -d "public" ]; then
@@ -200,8 +209,8 @@ jobs:
 
               # Set proper permissions
               echo "🔐 Setting permissions..."
-              find public -type d -exec chmod 755 {} \;
-              find public -type f -exec chmod 644 {} \;
+              sudo -u www find public -type d -exec chmod 755 {} \;
+              sudo -u www find public -type f -exec chmod 644 {} \;
               echo "✅ Permissions set"
 
               # Show deployment info from public directory
@@ -210,22 +219,32 @@ jobs:
                 echo "📋 Deployment Information:"
                 cat "public/deployment-info.json"
               fi
+
+              # Mark initial deployment as successful
+              if [ "$IS_INITIAL_DEPLOYMENT" = true ]; then
+                echo "🎉 Initial deployment completed successfully!"
+              fi
             else
               echo "⚠️ Warning: No 'public' directory found in artifact"
               echo "📁 Current directory contents:"
               ls -la
 
-              # Restore from latest backup
-              echo "🔄 Restoring site from latest backup..."
-              LATEST_BACKUP=$(ls -1t "$SITE_ROOT_PATH/backups" 2>/dev/null | head -1)
+              # Only try to restore if not initial deployment
+              if [ "$IS_INITIAL_DEPLOYMENT" = false ]; then
+                echo "🔄 Restoring site from latest backup..."
+                LATEST_BACKUP=$(ls -1t "$SITE_ROOT_PATH/backups" 2>/dev/null | head -1)
 
-              if [[ -n "$LATEST_BACKUP" ]]; then
-                echo "📦 Restoring from backup: $LATEST_BACKUP"
-                cp -r "$SITE_ROOT_PATH/backups/$LATEST_BACKUP" "$SITE_ROOT_PATH/public"
-                echo "✅ Site restored from backup successfully"
+                if [[ -n "$LATEST_BACKUP" ]]; then
+                  echo "📦 Restoring from backup: $LATEST_BACKUP"
+                  sudo -u www cp -r "$SITE_ROOT_PATH/backups/$LATEST_BACKUP" "$SITE_ROOT_PATH/public"
+                  echo "✅ Site restored from backup successfully"
+                else
+                  echo "⚠️ No backups found to restore from"
+                  echo "🚨 Site will be unavailable until manual intervention"
+                fi
               else
-                echo "⚠️ No backups found to restore from"
-                echo "🚨 Site will be unavailable until manual intervention"
+                echo "⚠️ Initial deployment failed - no public directory in artifact"
+                echo "🚨 Please check the build process"
               fi
 
               echo "❌ Deployment failed with exit code 1"
