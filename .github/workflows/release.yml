@@ -27,10 +27,15 @@ jobs:
           echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v5
+        uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
           version: latest
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Notify completion
+        run: |
+          echo "🚀 Release ${{ steps.tag.outputs.tag }} created successfully!"
+          echo "🏗️  This will trigger the site build workflow..."
