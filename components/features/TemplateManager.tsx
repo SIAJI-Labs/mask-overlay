@@ -27,13 +27,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import type { Template } from "@/types/templates";
-import type { WatermarkSettings } from "@/types/files";
+import type { WatermarkLayer } from "@/types/files";
 
 interface TemplateManagerProps {
     templates: Template[];
     currentTemplateId?: string | null;
     hasChanges?: boolean;
-    onLoad: (settings: WatermarkSettings, templateId: string) => void;
+    onLoad: (layer: WatermarkLayer, templateId: string) => void;
     onSave: (name: string) => void;
     onUpdate: (id: string) => void;
     onDiscard: () => void;
@@ -118,7 +118,7 @@ export function TemplateManager({
                         {builtInTemplates.map((template) => (
                             <DropdownMenuItem
                                 key={template.id}
-                                onClick={() => onLoad(template.settings, template.id)}
+                                onClick={() => onLoad(template.layer, template.id)}
                                 className={cn(
                                     "flex items-center justify-between",
                                     currentTemplateId === template.id && "bg-accent"
@@ -145,7 +145,7 @@ export function TemplateManager({
                                     >
                                         <span
                                             className="flex-1 cursor-pointer"
-                                            onClick={() => onLoad(template.settings, template.id)}
+                                            onClick={() => onLoad(template.layer, template.id)}
                                         >
                                             {template.name}
                                         </span>

@@ -25,13 +25,19 @@ import {
 } from "@/components/ui/alert-dialog";
 
 // Types
-import type { WatermarkSettings, ExportMode } from "@/types/files";
+import type { WatermarkLayer, ExportMode } from "@/types/files";
 import type { Template } from "@/types/templates";
 import { TemplateManager } from "./TemplateManager";
+import { LayerPanel } from "./LayerPanel";
 
 interface ControlsSidebarProps {
-    settings: WatermarkSettings;
-    onSettingsChange: (settings: Partial<WatermarkSettings>) => void;
+    layer: WatermarkLayer;
+    onLayerChange: (layer: Partial<Omit<WatermarkLayer, "id">>) => void;
+    layers: WatermarkLayer[];
+    activeLayerIndex: number;
+    onAddLayer: () => void;
+    onRemoveLayer: (layerId: string) => void;
+    onSelectLayer: (layerIndex: number) => void;
     onReset: () => void;
     onExport: () => void;
     exportMode?: ExportMode;
@@ -41,7 +47,7 @@ interface ControlsSidebarProps {
     templates?: Template[];
     currentTemplateId?: string | null;
     templateHasChanges?: boolean;
-    onLoadTemplate?: (settings: WatermarkSettings, templateId: string) => void;
+    onLoadTemplate?: (layer: WatermarkLayer, templateId: string) => void;
     onSaveTemplate?: (name: string) => void;
     onUpdateTemplate?: (id: string) => void;
     onDiscardTemplate?: () => void;
@@ -83,8 +89,13 @@ function ColorPickerButton({ value, onChange }: { value: string; onChange: (colo
 }
 
 export function ControlsSidebar({
-    settings,
-    onSettingsChange,
+    layer,
+    onLayerChange,
+    layers,
+    activeLayerIndex,
+    onAddLayer,
+    onRemoveLayer,
+    onSelectLayer,
     onReset,
     onExport,
     exportMode = "single",
@@ -129,6 +140,17 @@ export function ControlsSidebar({
 
                 <Separator />
 
+                {/* Layer Panel */}
+                <LayerPanel
+                    layers={layers}
+                    activeLayerIndex={activeLayerIndex}
+                    onSelectLayer={onSelectLayer}
+                    onAddLayer={onAddLayer}
+                    onRemoveLayer={onRemoveLayer}
+                />
+
+                <Separator />
+
                 {/* Text Input */}
                 <div className="space-y-3">
                     <div className="flex justify-between items-center">
@@ -136,14 +158,14 @@ export function ControlsSidebar({
                             Watermark Text
                         </Label>
                         <span className="text-xs text-muted-foreground">
-                            {settings.text.length}/50
+                            {layer.text.length}/50
                         </span>
                     </div>
                     <Input
                         id="watermark-text"
-                        value={settings.text}
+                        value={layer.text}
                         onChange={(e) =>
-                            onSettingsChange({ text: e.target.value.slice(0, 50) })
+                            onLayerChange({ text: e.target.value.slice(0, 50) })
                         }
                         placeholder="Enter watermark text..."
                         maxLength={50}
@@ -157,16 +179,16 @@ export function ControlsSidebar({
                     <Label className="text-sm font-medium">Pattern Mode</Label>
                     <div className="grid grid-cols-2 gap-2">
                         <Button
-                            variant={settings.mode === "single" ? "default" : "outline"}
+                            variant={layer.mode === "single" ? "default" : "outline"}
                             size="sm"
-                            onClick={() => onSettingsChange({ mode: "single" })}
+                            onClick={() => onLayerChange({ mode: "single" })}
                         >
                             Single
                         </Button>
                         <Button
-                            variant={settings.mode === "diagonal" ? "default" : "outline"}
+                            variant={layer.mode === "diagonal" ? "default" : "outline"}
                             size="sm"
-                            onClick={() => onSettingsChange({ mode: "diagonal" })}
+                            onClick={() => onLayerChange({ mode: "diagonal" })}
                         >
                             Diagonal Repeat
                         </Button>
@@ -180,12 +202,12 @@ export function ControlsSidebar({
                     <div className="flex justify-between items-center">
                         <Label className="text-sm font-medium">Font Size</Label>
                         <span className="text-xs text-muted-foreground tabular-nums">
-                            {settings.fontSize}px
+                            {layer.fontSize}px
                         </span>
                     </div>
                     <Slider
-                        value={[settings.fontSize]}
-                        onValueChange={([value]) => onSettingsChange({ fontSize: value })}
+                        value={[layer.fontSize]}
+                        onValueChange={([value]) => onLayerChange({ fontSize: value })}
                         min={12}
                         max={72}
                         step={1}
@@ -197,12 +219,12 @@ export function ControlsSidebar({
                     <div className="flex justify-between items-center">
                         <Label className="text-sm font-medium">Opacity</Label>
                         <span className="text-xs text-muted-foreground tabular-nums">
-                            {settings.opacity}%
+                            {layer.opacity}%
                         </span>
                     </div>
                     <Slider
-                        value={[settings.opacity]}
-                        onValueChange={([value]) => onSettingsChange({ opacity: value })}
+                        value={[layer.opacity]}
+                        onValueChange={([value]) => onLayerChange({ opacity: value })}
                         min={0}
                         max={100}
                         step={1}
@@ -214,12 +236,12 @@ export function ControlsSidebar({
                     <div className="flex justify-between items-center">
                         <Label className="text-sm font-medium">Angle</Label>
                         <span className="text-xs text-muted-foreground tabular-nums">
-                            {settings.angle}°
+                            {layer.angle}°
                         </span>
                     </div>
                     <Slider
-                        value={[settings.angle]}
-                        onValueChange={([value]) => onSettingsChange({ angle: value })}
+                        value={[layer.angle]}
+                        onValueChange={([value]) => onLayerChange({ angle: value })}
                         min={-45}
                         max={45}
                         step={1}
@@ -227,17 +249,17 @@ export function ControlsSidebar({
                 </div>
 
                 {/* Gap (only for diagonal mode) */}
-                {settings.mode === "diagonal" && (
+                {layer.mode === "diagonal" && (
                     <div className="space-y-3">
                         <div className="flex justify-between items-center">
                             <Label className="text-sm font-medium">Text Gap</Label>
                             <span className="text-xs text-muted-foreground tabular-nums">
-                                {settings.gap.toFixed(1)}x
+                                {layer.gap.toFixed(1)}x
                             </span>
                         </div>
                         <Slider
-                            value={[settings.gap]}
-                            onValueChange={([value]) => onSettingsChange({ gap: value })}
+                            value={[layer.gap]}
+                            onValueChange={([value]) => onLayerChange({ gap: value })}
                             min={1}
                             max={3}
                             step={0.1}
@@ -246,18 +268,18 @@ export function ControlsSidebar({
                 )}
 
                 {/* Offset X/Y (only for single mode) */}
-                {settings.mode === "single" && (
+                {layer.mode === "single" && (
                     <>
                         <div className="space-y-3">
                             <div className="flex justify-between items-center">
                                 <Label className="text-sm font-medium">Offset X</Label>
                                 <span className="text-xs text-muted-foreground tabular-nums">
-                                    {settings.offsetX}%
+                                    {layer.offsetX}%
                                 </span>
                             </div>
                             <Slider
-                                value={[settings.offsetX]}
-                                onValueChange={([value]) => onSettingsChange({ offsetX: value })}
+                                value={[layer.offsetX]}
+                                onValueChange={([value]) => onLayerChange({ offsetX: value })}
                                 min={-50}
                                 max={50}
                                 step={1}
@@ -267,12 +289,12 @@ export function ControlsSidebar({
                             <div className="flex justify-between items-center">
                                 <Label className="text-sm font-medium">Offset Y</Label>
                                 <span className="text-xs text-muted-foreground tabular-nums">
-                                    {settings.offsetY}%
+                                    {layer.offsetY}%
                                 </span>
                             </div>
                             <Slider
-                                value={[settings.offsetY]}
-                                onValueChange={([value]) => onSettingsChange({ offsetY: value })}
+                                value={[layer.offsetY]}
+                                onValueChange={([value]) => onLayerChange({ offsetY: value })}
                                 min={-50}
                                 max={50}
                                 step={1}
@@ -290,18 +312,18 @@ export function ControlsSidebar({
                         {COLOR_PRESETS.map((color) => (
                             <button
                                 key={color.value}
-                                className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${settings.color === color.value
+                                className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${layer.color === color.value
                                     ? "border-primary ring-2 ring-primary/30"
                                     : "border-muted-foreground/30"
                                     }`}
                                 style={{ backgroundColor: color.value }}
-                                onClick={() => onSettingsChange({ color: color.value })}
+                                onClick={() => onLayerChange({ color: color.value })}
                                 title={color.label}
                             />
                         ))}
                         <ColorPickerButton
-                            value={settings.color}
-                            onChange={(color) => onSettingsChange({ color })}
+                            value={layer.color}
+                            onChange={(color) => onLayerChange({ color })}
                         />
                     </div>
                 </div>

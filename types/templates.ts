@@ -2,12 +2,12 @@
  * Template types for saving and loading watermark configurations
  */
 
-import type { WatermarkSettings } from './files';
+import type { WatermarkLayer } from './files';
 
 export interface Template {
     id: string;
     name: string;
-    settings: WatermarkSettings;
+    layer: WatermarkLayer;
     createdAt: number;
     isBuiltIn?: boolean;
 }
@@ -22,7 +22,8 @@ export const BUILT_IN_TEMPLATES: Template[] = [
     {
         id: 'builtin-confidential',
         name: 'CONFIDENTIAL',
-        settings: {
+        layer: {
+            id: 'builtin-confidential-layer',
             text: 'CONFIDENTIAL',
             fontSize: 32,
             opacity: 50,
@@ -39,7 +40,8 @@ export const BUILT_IN_TEMPLATES: Template[] = [
     {
         id: 'builtin-verification',
         name: 'FOR VERIFICATION ONLY',
-        settings: {
+        layer: {
+            id: 'builtin-verification-layer',
             text: 'FOR VERIFICATION ONLY',
             fontSize: 32,
             opacity: 50,
@@ -56,7 +58,8 @@ export const BUILT_IN_TEMPLATES: Template[] = [
     {
         id: 'builtin-sample',
         name: 'SAMPLE',
-        settings: {
+        layer: {
+            id: 'builtin-sample-layer',
             text: 'SAMPLE',
             fontSize: 32,
             opacity: 50,
@@ -73,7 +76,8 @@ export const BUILT_IN_TEMPLATES: Template[] = [
     {
         id: 'builtin-draft',
         name: 'DRAFT',
-        settings: {
+        layer: {
+            id: 'builtin-draft-layer',
             text: 'DRAFT',
             fontSize: 32,
             opacity: 50,

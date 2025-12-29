@@ -5,13 +5,13 @@
  */
 
 import { useState, useCallback, useEffect } from 'react';
-import type { WatermarkSettings } from '@/types/files';
+import type { WatermarkLayer } from '@/types/files';
 import { Template, STORAGE_KEY, BUILT_IN_TEMPLATES } from '@/types/templates';
 
 interface UseTemplatesReturn {
     templates: Template[];
-    saveTemplate: (name: string, settings: WatermarkSettings) => Template;
-    updateTemplate: (id: string, settings: WatermarkSettings) => boolean;
+    saveTemplate: (name: string, layer: WatermarkLayer) => Template;
+    updateTemplate: (id: string, layer: WatermarkLayer) => boolean;
     renameTemplate: (id: string, newName: string) => boolean;
     deleteTemplate: (id: string) => boolean;
     getTemplate: (id: string) => Template | undefined;
@@ -67,11 +67,11 @@ export function useTemplates(): UseTemplatesReturn {
     const templates = [...BUILT_IN_TEMPLATES, ...customTemplates];
 
     // Save a new template
-    const saveTemplate = useCallback((name: string, settings: WatermarkSettings): Template => {
+    const saveTemplate = useCallback((name: string, layer: WatermarkLayer): Template => {
         const newTemplate: Template = {
             id: generateId(),
             name: name.trim(),
-            settings: { ...settings },
+            layer: { ...layer },
             createdAt: Date.now(),
             isBuiltIn: false,
         };
@@ -85,8 +85,8 @@ export function useTemplates(): UseTemplatesReturn {
         return newTemplate;
     }, []);
 
-    // Update an existing template's settings
-    const updateTemplate = useCallback((id: string, settings: WatermarkSettings): boolean => {
+    // Update an existing template's layer
+    const updateTemplate = useCallback((id: string, layer: WatermarkLayer): boolean => {
         // Cannot update built-in templates
         if (BUILT_IN_TEMPLATES.some(t => t.id === id)) {
             console.warn('Cannot update built-in templates');
@@ -95,7 +95,7 @@ export function useTemplates(): UseTemplatesReturn {
 
         setCustomTemplates(prev => {
             const updated = prev.map(t =>
-                t.id === id ? { ...t, settings: { ...settings } } : t
+                t.id === id ? { ...t, layer: { ...layer } } : t
             );
             saveToStorage(updated);
             return updated;

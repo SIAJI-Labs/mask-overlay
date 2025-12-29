@@ -6,7 +6,7 @@ import {
     downloadBulk,
     downloadZip
 } from '@/lib/exportUtils';
-import { DEFAULT_SETTINGS, MAX_FILES } from '@/types/files';
+import { MAX_FILES, DEFAULT_LAYER } from '@/types/files';
 
 // Mock JSZip with a class
 vi.mock('jszip', () => {
@@ -161,17 +161,17 @@ describe('exportUtils', () => {
 });
 
 describe('files types', () => {
-    describe('DEFAULT_SETTINGS', () => {
+    describe('DEFAULT_LAYER', () => {
         it('has correct default values', () => {
-            expect(DEFAULT_SETTINGS.text).toBe('CONFIDENTIAL');
-            expect(DEFAULT_SETTINGS.fontSize).toBe(32);
-            expect(DEFAULT_SETTINGS.opacity).toBe(50);
-            expect(DEFAULT_SETTINGS.angle).toBe(-30);
-            expect(DEFAULT_SETTINGS.color).toBe('#000000');
-            expect(DEFAULT_SETTINGS.mode).toBe('diagonal');
-            expect(DEFAULT_SETTINGS.gap).toBe(1.5);
-            expect(DEFAULT_SETTINGS.offsetX).toBe(0);
-            expect(DEFAULT_SETTINGS.offsetY).toBe(0);
+            expect(DEFAULT_LAYER.text).toBe('CONFIDENTIAL');
+            expect(DEFAULT_LAYER.fontSize).toBe(32);
+            expect(DEFAULT_LAYER.opacity).toBe(50);
+            expect(DEFAULT_LAYER.angle).toBe(-30);
+            expect(DEFAULT_LAYER.color).toBe('#000000');
+            expect(DEFAULT_LAYER.mode).toBe('diagonal');
+            expect(DEFAULT_LAYER.gap).toBe(1.5);
+            expect(DEFAULT_LAYER.offsetX).toBe(0);
+            expect(DEFAULT_LAYER.offsetY).toBe(0);
         });
     });
 
