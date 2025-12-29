@@ -18,6 +18,13 @@ const eslintConfig = defineConfig([
     // Coverage output
     "coverage/**",
   ]),
+  // Allow CommonJS in Node.js scripts
+  {
+    files: ["scripts/**/*.js"],
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;
