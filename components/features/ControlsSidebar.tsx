@@ -28,6 +28,7 @@ import {
 import type { WatermarkLayer, ExportMode } from "@/types/files";
 import type { Template } from "@/types/templates";
 import { TemplateManager } from "./TemplateManager";
+import { LayerPanel } from "./LayerPanel";
 
 interface ControlsSidebarProps {
     layer: WatermarkLayer;
@@ -136,6 +137,17 @@ export function ControlsSidebar({
                         />
                     </div>
                 )}
+
+                <Separator />
+
+                {/* Layer Panel */}
+                <LayerPanel
+                    layers={layers}
+                    activeLayerIndex={activeLayerIndex}
+                    onSelectLayer={onSelectLayer}
+                    onAddLayer={onAddLayer}
+                    onRemoveLayer={onRemoveLayer}
+                />
 
                 <Separator />
 

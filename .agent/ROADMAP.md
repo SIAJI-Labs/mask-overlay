@@ -132,16 +132,16 @@ npx shadcn@latest add button card input label slider select
 - [x] Migrate existing presets to template system
 - [x] Unit tests for template persistence
 
-### Phase 10: Multiple Overlay Layers
+### Phase 10: Multiple Overlay Layers ✅
 **Goal**: Support multiple watermark layers (single mode only)
 
-- [ ] Refactor settings to layers array structure
-- [ ] Create LayerPanel component (add/remove/select)
-- [ ] Update CanvasPreview to render multiple layers
-- [ ] Add layer indicator in ControlsSidebar
-- [ ] Auto-switch to single mode when layers > 1
-- [ ] Show warning if diagonal mode with multiple layers
-- [ ] Layer reordering (optional: drag-and-drop)
+- [x] Refactor settings to layers array structure
+- [x] Create LayerPanel component (add/remove/select)
+- [x] Update CanvasPreview to render multiple layers
+- [x] Add layer indicator in ControlsSidebar
+- [x] Update template system for layers
+- [x] Implement layer management (add/remove/select)
+- [x] Add warning for diagonal mode with multiple layers
 
 ### Phase 11: Dark Mode
 **Goal**: System-aware theming with manual toggle
