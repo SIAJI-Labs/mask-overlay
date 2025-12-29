@@ -14,7 +14,7 @@ import { CanvasPreview } from "@/components/features/CanvasPreview";
 import { OfflineIndicator } from "@/components/features/OfflineIndicator";
 
 // Types
-import { FileItem, WatermarkSettings, DEFAULT_SETTINGS, ExportMode } from "@/types/files";
+import { FileItem, WatermarkLayer, createLayer, ExportMode, MAX_LAYERS } from "@/types/files";
 
 // Utils
 import { downloadSingle, downloadBulk, downloadZip, getExportFilename, getCanvasDataUrl, ExportableFile } from "@/lib/exportUtils";
@@ -33,7 +33,7 @@ export default function Home() {
   const [isAddingMore, setIsAddingMore] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [currentTemplateId, setCurrentTemplateId] = useState<string | null>(null);
-  const [templateOriginalSettings, setTemplateOriginalSettings] = useState<WatermarkSettings | null>(null);
+  const [templateOriginalLayer, setTemplateOriginalLayer] = useState<WatermarkLayer | null>(null);
 
   // Template management
   const { templates, saveTemplate, updateTemplate, renameTemplate, deleteTemplate } = useTemplates();
@@ -43,9 +43,12 @@ export default function Home() {
   // Get the currently active file
   const activeFile = files[activeIndex] ?? null;
 
-  // Check if settings have changed from the loaded template
-  const templateHasChanges = currentTemplateId && templateOriginalSettings && activeFile
-    ? JSON.stringify(activeFile.settings) !== JSON.stringify(templateOriginalSettings)
+  // Get the currently active layer
+  const activeLayer = activeFile?.layers[activeFile.activeLayerIndex] ?? null;
+
+  // Check if layer has changed from the loaded template
+  const templateHasChanges = currentTemplateId && templateOriginalLayer && activeLayer
+    ? JSON.stringify(activeLayer) !== JSON.stringify(templateOriginalLayer)
     : false;
 
   // Handle initial file selection or adding more files
@@ -60,7 +63,8 @@ export default function Home() {
           id: generateId(),
           file,
           imageSrc: e.target?.result as string,
-          settings: { ...DEFAULT_SETTINGS },
+          layers: [createLayer()],
+          activeLayerIndex: 0,
         };
         newFileItems.push(newItem);
         loadedCount++;
@@ -114,12 +118,64 @@ export default function Home() {
     setIsAddingMore(false);
   }, []);
 
-  // Handle settings change for the active file
-  const handleSettingsChange = useCallback((newSettings: Partial<WatermarkSettings>) => {
+  // Handle layer settings change for the active file's active layer
+  const handleLayerChange = useCallback((newSettings: Partial<Omit<WatermarkLayer, "id">>) => {
     setFiles((prev) =>
       prev.map((f, i) =>
         i === activeIndex
-          ? { ...f, settings: { ...f.settings, ...newSettings } }
+          ? {
+              ...f,
+              layers: f.layers.map((layer, layerIdx) =>
+                layerIdx === f.activeLayerIndex
+                  ? { ...layer, ...newSettings }
+                  : layer
+              ),
+            }
+          : f
+      )
+    );
+  }, [activeIndex]);
+
+  // Handle adding a new layer
+  const handleAddLayer = useCallback(() => {
+    if (!activeFile || activeFile.layers.length >= MAX_LAYERS) return;
+
+    setFiles((prev) =>
+      prev.map((f, i) =>
+        i === activeIndex
+          ? {
+              ...f,
+              layers: [...f.layers, createLayer()],
+              activeLayerIndex: f.layers.length, // Set new layer as active
+            }
+          : f
+      )
+    );
+  }, [activeIndex, activeFile]);
+
+  // Handle removing a layer
+  const handleRemoveLayer = useCallback((layerId: string) => {
+    if (!activeFile || activeFile.layers.length <= 1) return; // Keep at least one layer
+
+    setFiles((prev) =>
+      prev.map((f, i) =>
+        i === activeIndex
+          ? {
+              ...f,
+              layers: f.layers.filter((layer) => layer.id !== layerId),
+              activeLayerIndex: Math.min(f.activeLayerIndex, f.layers.filter((layer) => layer.id !== layerId).length - 1),
+            }
+          : f
+      )
+    );
+  }, [activeIndex, activeFile]);
+
+  // Handle selecting a layer
+  const handleSelectLayer = useCallback((layerIndex: number) => {
+    setFiles((prev) =>
+      prev.map((f, i) =>
+        i === activeIndex
+          ? { ...f, activeLayerIndex: layerIndex }
           : f
       )
     );
@@ -130,44 +186,60 @@ export default function Home() {
     setExportMode(mode);
   }, []);
 
-  // Handle loading a template (applies settings to active file)
-  const handleLoadTemplate = useCallback((settings: WatermarkSettings, templateId: string) => {
+  // Handle loading a template (applies layer to active file's active layer)
+  const handleLoadTemplate = useCallback((layer: WatermarkLayer, templateId: string) => {
     setFiles((prev) =>
       prev.map((f, i) =>
-        i === activeIndex ? { ...f, settings } : f
+        i === activeIndex
+          ? {
+              ...f,
+              layers: f.layers.map((l, layerIdx) =>
+                layerIdx === f.activeLayerIndex ? { ...layer, id: l.id } : l
+              ),
+            }
+          : f
       )
     );
     setCurrentTemplateId(templateId);
-    setTemplateOriginalSettings({ ...settings });
+    setTemplateOriginalLayer({ ...layer });
   }, [activeIndex]);
 
-  // Handle saving current settings as a template
+  // Handle saving current layer as a template
   const handleSaveTemplate = useCallback((name: string) => {
-    if (activeFile) {
-      const newTemplate = saveTemplate(name, activeFile.settings);
+    if (activeLayer) {
+      const newTemplate = saveTemplate(name, activeLayer);
       setCurrentTemplateId(newTemplate.id);
-      setTemplateOriginalSettings({ ...activeFile.settings });
+      setTemplateOriginalLayer({ ...activeLayer });
     }
-  }, [activeFile, saveTemplate]);
+  }, [activeLayer, saveTemplate]);
 
-  // Handle updating a template with current settings
+  // Handle updating a template with current layer
   const handleUpdateTemplate = useCallback((id: string) => {
-    if (activeFile) {
-      updateTemplate(id, activeFile.settings);
-      setTemplateOriginalSettings({ ...activeFile.settings });
+    if (activeLayer) {
+      updateTemplate(id, activeLayer);
+      setTemplateOriginalLayer({ ...activeLayer });
     }
-  }, [activeFile, updateTemplate]);
+  }, [activeLayer, updateTemplate]);
 
   // Handle discarding template changes (revert to original)
   const handleDiscardTemplate = useCallback(() => {
-    if (templateOriginalSettings) {
+    if (templateOriginalLayer) {
       setFiles((prev) =>
         prev.map((f, i) =>
-          i === activeIndex ? { ...f, settings: { ...templateOriginalSettings } } : f
+          i === activeIndex
+            ? {
+                ...f,
+                layers: f.layers.map((layer, layerIdx) =>
+                  layerIdx === f.activeLayerIndex
+                    ? { ...templateOriginalLayer, id: layer.id }
+                    : layer
+                ),
+              }
+            : f
         )
       );
     }
-  }, [activeIndex, templateOriginalSettings]);
+  }, [activeIndex, templateOriginalLayer]);
 
   // Handle renaming a template
   const handleRenameTemplate = useCallback((id: string, newName: string) => {
@@ -208,7 +280,7 @@ export default function Home() {
         const file = files[i];
         const canvas = await renderToCanvas({
           imageSrc: file.imageSrc,
-          settings: file.settings,
+          layers: file.layers,
         });
 
         const ext = file.file.name.split(".").pop()?.toLowerCase() === "png" ? "png" : "jpeg";
@@ -240,8 +312,13 @@ export default function Home() {
       sidebar={
         hasFiles && !isAddingMore ? (
           <ControlsSidebar
-            settings={activeFile?.settings ?? DEFAULT_SETTINGS}
-            onSettingsChange={handleSettingsChange}
+            layer={activeLayer ?? createLayer()}
+            onLayerChange={handleLayerChange}
+            layers={activeFile?.layers ?? []}
+            activeLayerIndex={activeFile?.activeLayerIndex ?? 0}
+            onAddLayer={handleAddLayer}
+            onRemoveLayer={handleRemoveLayer}
+            onSelectLayer={handleSelectLayer}
             onReset={handleReset}
             onExport={handleExport}
             exportMode={exportMode}
@@ -293,7 +370,7 @@ export default function Home() {
         </div>
       ) : (
         <>
-          {activeFile && <CanvasPreview imageSrc={activeFile.imageSrc} settings={activeFile.settings} />}
+          {activeFile && <CanvasPreview imageSrc={activeFile.imageSrc} layers={activeFile.layers} />}
           {/* File carousel - shown at bottom when files exist */}
           {hasFiles && (
             <FileCarousel
