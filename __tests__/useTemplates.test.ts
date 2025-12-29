@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useTemplates } from '@/hooks/useTemplates';
 import { STORAGE_KEY, BUILT_IN_TEMPLATES } from '@/types/templates';
-import { DEFAULT_SETTINGS } from '@/types/files';
+import { createLayer } from '@/types/files';
 
 // Mock localStorage
 const mockStorage: Record<string, string> = {};
@@ -46,7 +46,7 @@ describe('useTemplates', () => {
             const customTemplate = {
                 id: 'custom-1',
                 name: 'My Template',
-                settings: DEFAULT_SETTINGS,
+                layer: createLayer(),
                 createdAt: Date.now(),
                 isBuiltIn: false,
             };
@@ -64,7 +64,7 @@ describe('useTemplates', () => {
             const { result } = renderHook(() => useTemplates());
 
             act(() => {
-                result.current.saveTemplate('Test Template', DEFAULT_SETTINGS);
+                result.current.saveTemplate('Test Template', createLayer());
             });
 
             expect(result.current.templates.length).toBe(BUILT_IN_TEMPLATES.length + 1);
@@ -78,7 +78,7 @@ describe('useTemplates', () => {
             const { result } = renderHook(() => useTemplates());
 
             act(() => {
-                result.current.saveTemplate('Saved Template', DEFAULT_SETTINGS);
+                result.current.saveTemplate('Saved Template', createLayer());
             });
 
             expect(localStorageMock.setItem).toHaveBeenCalledWith(
@@ -93,7 +93,7 @@ describe('useTemplates', () => {
             const customTemplate = {
                 id: 'custom-1',
                 name: 'My Template',
-                settings: DEFAULT_SETTINGS,
+                layer: createLayer(),
                 createdAt: Date.now(),
                 isBuiltIn: false,
             };
@@ -129,7 +129,7 @@ describe('useTemplates', () => {
             const customTemplate = {
                 id: 'custom-1',
                 name: 'My Template',
-                settings: DEFAULT_SETTINGS,
+                layer: createLayer(),
                 createdAt: Date.now(),
                 isBuiltIn: false,
             };
@@ -137,7 +137,7 @@ describe('useTemplates', () => {
 
             const { result } = renderHook(() => useTemplates());
 
-            const newSettings = { ...DEFAULT_SETTINGS, text: 'NEW TEXT', fontSize: 48 };
+            const newSettings = { ...createLayer(), text: 'NEW TEXT', fontSize: 48 };
 
             act(() => {
                 const success = result.current.updateTemplate('custom-1', newSettings);
@@ -145,8 +145,8 @@ describe('useTemplates', () => {
             });
 
             const updated = result.current.templates.find(t => t.id === 'custom-1');
-            expect(updated?.settings.text).toBe('NEW TEXT');
-            expect(updated?.settings.fontSize).toBe(48);
+            expect(updated?.layer.text).toBe('NEW TEXT');
+            expect(updated?.layer.fontSize).toBe(48);
         });
 
         it('prevents updating built-in templates', () => {
@@ -154,7 +154,7 @@ describe('useTemplates', () => {
             const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => { });
 
             act(() => {
-                const success = result.current.updateTemplate('builtin-confidential', DEFAULT_SETTINGS);
+                const success = result.current.updateTemplate('builtin-confidential', createLayer());
                 expect(success).toBe(false);
             });
 
@@ -168,7 +168,7 @@ describe('useTemplates', () => {
             const customTemplate = {
                 id: 'custom-1',
                 name: 'Old Name',
-                settings: DEFAULT_SETTINGS,
+                layer: createLayer(),
                 createdAt: Date.now(),
                 isBuiltIn: false,
             };
