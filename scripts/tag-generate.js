@@ -134,6 +134,12 @@ async function main() {
       exec('git checkout main');
     }
 
+    // Pull latest changes from main
+    log('⬇️  Pulling latest changes from main...', colors.blue);
+    if (!DRY_RUN) {
+      exec('git pull origin main');
+    }
+
     // Fetch latest tags
     log('🔄 Fetching latest tags from remote...', colors.blue);
     if (!DRY_RUN) {
