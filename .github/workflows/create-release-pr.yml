@@ -1,0 +1,214 @@
+name: Create Release PR and Build Site
+
+on:
+  workflow_run:
+    workflows: ["Release"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g., v0.2.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  # Extract release info from the triggering workflow
+  extract-release-info:
+    name: Extract Release Info
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+      tag: ${{ steps.get_version.outputs.tag }}
+      release_url: ${{ steps.get_version.outputs.release_url }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version from triggering workflow or input
+        id: get_version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            TAG="${{ github.event.inputs.tag }}"
+          else
+            TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          fi
+
+          VERSION=${TAG#v}
+          RELEASE_URL="https://github.com/${{ github.repository }}/releases/tag/${TAG}"
+
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "release_url=${RELEASE_URL}" >> $GITHUB_OUTPUT
+
+          echo "📦 Version: ${VERSION}"
+          echo "🏷️  Tag: ${TAG}"
+          echo "🔗 Release: ${RELEASE_URL}"
+
+  # Build the static site
+  build-site:
+    name: Build Static Site
+    runs-on: ubuntu-latest
+    needs: extract-release-info
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Set environment variables
+        run: |
+          echo "NEXT_PUBLIC_VERSION=${{ needs.extract-release-info.outputs.version }}" >> $GITHUB_ENV
+          echo "NEXT_PUBLIC_RELEASE_URL=${{ needs.extract-release-info.outputs.release_url }}" >> $GITHUB_ENV
+
+      - name: Build Next.js site
+        run: npm run build
+
+      - name: Export static site
+        run: |
+          # Next.js static export is already in .next/standalone or out directory
+          # Create archive structure
+          mkdir -p package/public
+
+          # Copy the built files
+          if [ -d "out" ]; then
+            cp -r out/* package/public/
+          elif [ -d ".next" ]; then
+            cp -r .next/static package/public/_next/
+            cp -r public/* package/public/ 2>/dev/null || true
+          fi
+
+          # Create deployment info
+          cat > package/public/deployment-info.json <<EOF
+          {
+            "version": "${{ needs.extract-release-info.outputs.version }}",
+            "tag": "${{ needs.extract-release-info.outputs.tag }}",
+            "release_url": "${{ needs.extract-release-info.outputs.release_url }}",
+            "build_time": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+            "commit_sha": "${{ github.sha }}",
+            "workflow_run": "${{ github.run_id }}"
+          }
+          EOF
+
+          # Create tarball
+          cd package
+          tar -czf ../markly-site-${{ needs.extract-release-info.outputs.tag }}.tar.gz public/
+          cd ..
+
+          echo "✅ Created markly-site-${{ needs.extract-release-info.outputs.tag }}.tar.gz"
+          ls -lh markly-site-${{ needs.extract-release-info.outputs.tag }}.tar.gz
+
+      - name: Upload site to release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ needs.extract-release-info.outputs.tag }}
+          files: markly-site-${{ needs.extract-release-info.outputs.tag }}.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload site as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: markly-site-${{ needs.extract-release-info.outputs.version }}
+          path: markly-site-${{ needs.extract-release-info.outputs.tag }}.tar.gz
+          retention-days: 30
+
+  # Create PR to release branch
+  create-release-pr:
+    name: Create Release PR
+    runs-on: ubuntu-latest
+    needs: [extract-release-info, build-site]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify release exists
+        run: |
+          RELEASE_CHECK=$(gh release view ${{ needs.extract-release-info.outputs.tag }} --json tagName -q .tagName 2>/dev/null || echo "")
+
+          if [ -z "$RELEASE_CHECK" ]; then
+            echo "❌ Release ${{ needs.extract-release-info.outputs.tag }} not found"
+            exit 1
+          fi
+
+          echo "✅ Verified release exists: ${{ needs.extract-release-info.outputs.tag }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Close existing release PRs
+        run: |
+          # Find and close any existing release PRs
+          EXISTING_PRS=$(gh pr list --base release --state open --json number -q '.[].number')
+
+          if [ -n "$EXISTING_PRS" ]; then
+            echo "Found existing release PRs: $EXISTING_PRS"
+            for PR in $EXISTING_PRS; do
+              gh pr close $PR --comment "Closing in favor of new release ${{ needs.extract-release-info.outputs.tag }}"
+              echo "Closed PR #$PR"
+            done
+          else
+            echo "No existing release PRs to close"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create release PR
+        run: |
+          # Create PR body
+          cat > pr_body.md <<'EOF'
+          ## 🚀 Release ${{ needs.extract-release-info.outputs.tag }}
+
+          This PR merges the latest release into the `release` branch for production deployment.
+
+          ### 📦 Release Information
+          - **Version**: ${{ needs.extract-release-info.outputs.version }}
+          - **Tag**: ${{ needs.extract-release-info.outputs.tag }}
+          - **Release Notes**: ${{ needs.extract-release-info.outputs.release_url }}
+
+          ### 🔗 Links
+          - [GitHub Release](${{ needs.extract-release-info.outputs.release_url }})
+          - [Build Workflow](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          - [Download Site Archive](${{ needs.extract-release-info.outputs.release_url }})
+
+          ### ✅ Pre-Deployment Checklist
+          - [ ] Review changelog and release notes
+          - [ ] Verify build artifacts are attached to release
+          - [ ] Check that all tests pass
+          - [ ] Confirm no breaking changes for production
+          - [ ] Verify site build is successful
+
+          ### 🚢 Deployment
+          Once this PR is merged, the site will be automatically deployed to production via the Deploy workflow.
+
+          ---
+          *Automated PR created by Release workflow*
+          EOF
+
+          # Create the PR
+          gh pr create \
+            --base release \
+            --head main \
+            --title "Release ${{ needs.extract-release-info.outputs.tag }}" \
+            --body-file pr_body.md
+
+          echo "✅ Created release PR"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

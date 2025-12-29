@@ -1,0 +1,94 @@
+/**
+ * Template types for saving and loading watermark configurations
+ */
+
+import type { WatermarkLayer } from './files';
+
+export interface Template {
+    id: string;
+    name: string;
+    layer: WatermarkLayer;
+    createdAt: number;
+    isBuiltIn?: boolean;
+}
+
+export const STORAGE_KEY = 'watermark-templates';
+
+/**
+ * Built-in templates that cannot be deleted
+ * These replace the old PRESETS constant
+ */
+export const BUILT_IN_TEMPLATES: Template[] = [
+    {
+        id: 'builtin-confidential',
+        name: 'CONFIDENTIAL',
+        layer: {
+            id: 'builtin-confidential-layer',
+            text: 'CONFIDENTIAL',
+            fontSize: 32,
+            opacity: 50,
+            angle: -30,
+            color: '#000000',
+            mode: 'diagonal',
+            gap: 1.5,
+            offsetX: 0,
+            offsetY: 0,
+        },
+        createdAt: 0,
+        isBuiltIn: true,
+    },
+    {
+        id: 'builtin-verification',
+        name: 'FOR VERIFICATION ONLY',
+        layer: {
+            id: 'builtin-verification-layer',
+            text: 'FOR VERIFICATION ONLY',
+            fontSize: 32,
+            opacity: 50,
+            angle: -30,
+            color: '#000000',
+            mode: 'diagonal',
+            gap: 1.5,
+            offsetX: 0,
+            offsetY: 0,
+        },
+        createdAt: 0,
+        isBuiltIn: true,
+    },
+    {
+        id: 'builtin-sample',
+        name: 'SAMPLE',
+        layer: {
+            id: 'builtin-sample-layer',
+            text: 'SAMPLE',
+            fontSize: 32,
+            opacity: 50,
+            angle: -30,
+            color: '#DC2626',
+            mode: 'diagonal',
+            gap: 1.5,
+            offsetX: 0,
+            offsetY: 0,
+        },
+        createdAt: 0,
+        isBuiltIn: true,
+    },
+    {
+        id: 'builtin-draft',
+        name: 'DRAFT',
+        layer: {
+            id: 'builtin-draft-layer',
+            text: 'DRAFT',
+            fontSize: 32,
+            opacity: 50,
+            angle: -30,
+            color: '#000000',
+            mode: 'diagonal',
+            gap: 1.5,
+            offsetX: 0,
+            offsetY: 0,
+        },
+        createdAt: 0,
+        isBuiltIn: true,
+    },
+];

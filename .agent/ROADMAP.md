@@ -108,14 +108,70 @@ npx shadcn@latest add button card input label slider select
 - [x] Documentation finalization
 - [x] Launch! 🚀
 
+### Phase 8: Multi-File Upload Support
+**Goal**: Enable batch processing with WhatsApp-style carousel preview
+
+- [x] Modify FileUpload to accept multiple files (max 5)
+- [x] Create FileCarousel component (thumbnail strip with add/remove)
+- [x] Update state management for file array with per-file settings
+- [x] Implement shared-by-default, per-file-override settings logic
+- [x] Add export mode selection (Single / Bulk / ZIP)
+- [x] Integrate JSZip for compressed export
+- [x] Create export utility functions (`downloadBulk`, `downloadZip`)
+- [x] Update ControlsSidebar with export options
+- [x] Mobile-responsive carousel design
+- [x] Unit & component tests for new functionality
+
+### Phase 9: Overlay Templates (Save/Load)
+**Goal**: Allow users to save and reuse watermark configurations
+
+- [x] Create `useTemplates` hook for localStorage CRUD
+- [x] Build TemplateManager component (list, save, load, delete)
+- [x] Add "Save as Template" button to sidebar
+- [x] Add "Load Template" dropdown to sidebar
+- [x] Migrate existing presets to template system
+- [x] Unit tests for template persistence
+
+### Phase 10: Multiple Overlay Layers ✅
+**Goal**: Support multiple watermark layers (single mode only)
+
+- [x] Refactor settings to layers array structure
+- [x] Create LayerPanel component (add/remove/select)
+- [x] Update CanvasPreview to render multiple layers
+- [x] Add layer indicator in ControlsSidebar
+- [x] Update template system for layers
+- [x] Implement layer management (add/remove/select)
+- [x] Add warning for diagonal mode with multiple layers
+
+### Phase 11: Dark Mode
+**Goal**: System-aware theming with manual toggle
+
+- [x] Create `useTheme` hook (detect, toggle, persist)
+- [x] Build ThemeToggle component (sun/moon icon)
+- [x] Add toggle to header/MainLayout
+- [x] Audit and update component styles for dark mode
+- [x] Verify PWA theme-color meta updates
+
+### Phase 12: Landing Page & Restructuring
+**Goal**: Create a dedicated landing page and improve application structure
+
+- [x] Move main application to `/app` route
+- [x] Create marketing landing page at root `/`
+- [x] Implement "How it works" and features section
+- [x] Update navigation and internal links
+- [x] Verify routing and SEO structure
+
+### Phase 13: Landing Page Content Expansion
+**Goal**: Enhance landing page with rich content and trust signals
+
+- [x] Add "Who is this for?" Use Cases section
+- [x] Create Technical Security Deep Dive
+- [x] Implement FAQ section with Accordion
+- [x] Add "Ready to secure?" CTA
+- [x] Improve responsiveness for new sections
+
 ## Feature Ideas (Future)
 
-- 🎨 Pre-defined overlay templates
-- 📐 Multiple overlay layers
-- 🔄 Batch processing for multiple documents
-- 💾 Save/load overlay configurations
-- 🌙 Dark mode support
-- 📱 Mobile-optimized interface
 - 🖼️ PDF support (input and output)
 
 ## Technical Considerations

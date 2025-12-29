@@ -1,0 +1,106 @@
+version: 2
+
+# For Next.js projects, we don't build binaries
+# Instead, we configure changelog and release settings
+builds:
+  - skip: true
+
+# Changelog configuration with conventional commits
+changelog:
+  use: github
+  groups:
+    - title: Features
+      regexp: ^feat(\(.+\))?:\s?
+      order: 0
+
+    - title: Bug Fixes
+      regexp: ^fix(\(.+\))?:\s?
+      order: 1
+
+    - title: Enhancements
+      regexp: ^chore(\(.+\))?:\s?
+      order: 2
+
+    - title: Refactor
+      regexp: ^refactor(\(.+\))?:\s?
+      order: 3
+
+    - title: Build Process Updates
+      regexp: ^(ci|build)(\(.+\))?:\s?
+      order: 4
+
+    - title: Tests
+      regexp: ^test(\(.+\))?:\s?
+      order: 5
+
+    - title: Documentation Updates
+      regexp: ^docs(\(.+\))?:\s?
+      order: 6
+
+    - title: Others
+      order: 999
+
+# Release configuration
+release:
+  prerelease: auto
+  make_latest: true
+  header: |
+    ## Markly {{ .Version }}
+
+    Privacy-first watermarking tool for confidential documents. Add overlays and watermarks without files ever leaving your browser.
+
+  footer: |
+    ## 🚀 Deployment
+
+    This release has been automatically deployed to production:
+    - **Live Site**: https://markly.siaji.com
+    - **Version**: {{ .Version }}
+
+    ## 🔧 Using Markly
+
+    ### Quick Start
+    1. Visit [markly.siaji.com](https://markly.siaji.com)
+    2. Upload your document (100% offline processing)
+    3. Customize your watermark
+    4. Export and download
+
+    ### Key Features
+    - ✅ 100% offline - No server uploads
+    - ✅ Multi-layer watermarks
+    - ✅ Template save/load
+    - ✅ Batch processing (up to 5 files)
+    - ✅ PWA support - Works offline
+    - ✅ Dark mode
+
+    ## 📦 Self-Hosting
+
+    To self-host Markly:
+
+    ```bash
+    # Download the static site
+    wget https://github.com/SIAJI-Labs/mask-overlay/releases/download/{{ .Tag }}/markly-site-{{ .Tag }}.tar.gz
+
+    # Extract
+    tar -xzf markly-site-{{ .Tag }}.tar.gz
+
+    # Serve with any static file server
+    # Using Python
+    cd public && python3 -m http.server 8080
+
+    # Using Node.js (npx serve)
+    npx serve public
+
+    # Using Nginx (copy public/* to your web root)
+    cp -r public/* /var/www/html/
+    ```
+
+    ## 🐛 Found an Issue?
+
+    Please report bugs or request features at:
+    https://github.com/SIAJI-Labs/mask-overlay/issues
+
+    ## 📚 Documentation
+
+    - [Deployment Guide](.agent/DEPLOYMENT.md)
+    - [Contributing Guidelines](CONTRIBUTING.md)
+    - [Project Roadmap](.agent/ROADMAP.md)

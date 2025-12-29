@@ -1,0 +1,279 @@
+name: Deploy Site
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - release
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to deploy (e.g., v0.2.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  deploy-site:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'pull_request' && github.event.pull_request.merged == true) ||
+      github.event_name == 'workflow_dispatch'
+    environment: production
+
+    steps:
+      - name: Validate secrets
+        id: validate
+        run: |
+          MISSING_SECRETS=()
+
+          # Check required secrets
+          if [ -z "${{ secrets.SSH_HOST }}" ]; then
+            MISSING_SECRETS+=("SSH_HOST")
+          fi
+
+          if [ -z "${{ secrets.SSH_USERNAME }}" ]; then
+            MISSING_SECRETS+=("SSH_USERNAME")
+          fi
+
+          if [ -z "${{ secrets.SSH_PRIVATE_KEY }}" ]; then
+            MISSING_SECRETS+=("SSH_PRIVATE_KEY")
+          fi
+
+          if [ -z "${{ secrets.ENV_SITE_ROOT_PATH }}" ]; then
+            MISSING_SECRETS+=("ENV_SITE_ROOT_PATH")
+          fi
+
+          # Check if any secrets are missing
+          if [ ${#MISSING_SECRETS[@]} -gt 0 ]; then
+            echo "❌ Missing required secrets:"
+            for secret in "${MISSING_SECRETS[@]}"; do
+              echo "  - $secret"
+            done
+            echo ""
+            echo "⚠️  Please configure the following secrets in repository settings:"
+            echo "   Settings → Secrets and variables → Actions"
+            echo ""
+            echo "📋 Required secrets:"
+            echo "  - SSH_HOST: Production server hostname"
+            echo "  - SSH_USERNAME: SSH username"
+            echo "  - SSH_PRIVATE_KEY: SSH private key for authentication"
+            echo "  - SSH_PORT: SSH port (optional, defaults to 22)"
+            echo "  - ENV_SITE_ROOT_PATH: Deployment directory on server"
+            echo ""
+            echo "🔗 Documentation: .agent/DEPLOYMENT.md"
+            echo ""
+            echo "should_deploy=false" >> $GITHUB_OUTPUT
+            exit 0
+          else
+            echo "✅ All required secrets are configured"
+            echo "should_deploy=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Checkout code
+        if: steps.validate.outputs.should_deploy == 'true'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract deployment info
+        if: steps.validate.outputs.should_deploy == 'true'
+        id: info
+        run: |
+          # Get version from workflow dispatch or latest tag
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            TAG="${{ github.event.inputs.tag }}"
+          else
+            TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          fi
+
+          VERSION=${TAG#v}
+          RELEASE_URL="https://github.com/${{ github.repository }}/releases/tag/${TAG}"
+          ARTIFACT_NAME="markly-site-${TAG}.tar.gz"
+
+          # Get artifact download URL from release
+          ARTIFACT_URL=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/${TAG}" | \
+            jq -r ".assets[] | select(.name == \"${ARTIFACT_NAME}\") | .browser_download_url")
+
+          if [ -z "$ARTIFACT_URL" ] || [ "$ARTIFACT_URL" == "null" ]; then
+            echo "❌ No site asset found for release ${TAG}"
+            exit 1
+          fi
+
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "release_url=${RELEASE_URL}" >> $GITHUB_OUTPUT
+          echo "artifact_name=${ARTIFACT_NAME}" >> $GITHUB_OUTPUT
+          echo "artifact_url=${ARTIFACT_URL}" >> $GITHUB_OUTPUT
+
+          echo "📋 Deployment Information:"
+          echo "  Version: ${VERSION}"
+          echo "  Tag: ${TAG}"
+          echo "  Release URL: ${RELEASE_URL}"
+          echo "  Artifact: ${ARTIFACT_NAME}"
+
+      - name: Deploy to server via SSH
+        if: steps.validate.outputs.should_deploy == 'true'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          timeout: 300s
+          command_timeout: 60s
+          envs: VERSION,RELEASE_URL,ARTIFACT_NAME,ARTIFACT_URL,COMMIT_SHA,SITE_ROOT_PATH,GITHUB_TOKEN
+          script: |
+            # Set environment variables
+            export VERSION="${{ steps.info.outputs.version }}"
+            export RELEASE_URL="${{ steps.info.outputs.release_url }}"
+            export ARTIFACT_NAME="${{ steps.info.outputs.artifact_name }}"
+            export ARTIFACT_URL="${{ steps.info.outputs.artifact_url }}"
+            export COMMIT_SHA="${{ github.sha }}"
+            export SITE_ROOT_PATH="${{ secrets.ENV_SITE_ROOT_PATH }}"
+            export GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}"
+
+            echo "🚀 Starting Markly Site Deployment"
+            echo "Version: $VERSION"
+            echo "Artifact: $ARTIFACT_NAME"
+            echo "Site Root Path: $SITE_ROOT_PATH"
+
+            # Navigate to site root path
+            cd "$SITE_ROOT_PATH"
+
+            # Backup current deployment if it exists
+            if [ -d "public" ]; then
+              echo "📦 Creating backup of current deployment..."
+              BACKUP_NAME="backup-$(date +%Y%m%d-%H%M%S)"
+              mkdir -p "$SITE_ROOT_PATH/backups"
+              cp -r "public" "$SITE_ROOT_PATH/backups/$BACKUP_NAME"
+              echo "✅ Backup created: $BACKUP_NAME"
+
+              # Cleanup old backups (keep only 5 latest)
+              echo "🧹 Cleaning up old backups (keeping latest 5)..."
+              cd "$SITE_ROOT_PATH/backups" && ls -1t | tail -n +6 | xargs -r rm -rf
+              echo "✅ Backup cleanup completed"
+            else
+              echo "ℹ️ No existing public directory found to backup"
+            fi
+
+            # Clean up current public directory
+            echo "🧹 Cleaning up current public directory..."
+            rm -rf "$SITE_ROOT_PATH/public/"
+            echo "✅ Public directory cleanup completed"
+
+            # Create deployment info
+            echo "📊 Creating deployment-info.json..."
+            tee "$SITE_ROOT_PATH/deployment-info.json" > /dev/null <<EOF
+            {
+              "version": "$VERSION",
+              "release_url": "$RELEASE_URL",
+              "artifact_name": "$ARTIFACT_NAME",
+              "commit_sha": "$COMMIT_SHA",
+              "deployed_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+              "deployed_by": "github-actions",
+              "site_root_path": "$SITE_ROOT_PATH"
+            }
+            EOF
+            echo "✅ Deployment info created"
+
+            # Download artifact directly from GitHub to server
+            echo "📥 Downloading artifact: $ARTIFACT_NAME"
+            ARTIFACT_FILE="artifact.tar.gz"
+            curl -L -H "Authorization: token $GITHUB_TOKEN" \
+              "$ARTIFACT_URL" -o "$ARTIFACT_FILE"
+
+            # Extract artifact
+            echo "📂 Extracting artifact to $SITE_ROOT_PATH..."
+            tar -xzf "$ARTIFACT_FILE"
+            rm "$ARTIFACT_FILE"
+
+            # Verify extraction
+            if [ -d "public" ]; then
+              echo "✅ Artifact extracted successfully with public directory"
+              echo "📁 Public directory contents:"
+              ls -la public/ | head -10
+
+              # Set proper permissions
+              echo "🔐 Setting permissions..."
+              find public -type d -exec chmod 755 {} \;
+              find public -type f -exec chmod 644 {} \;
+              echo "✅ Permissions set"
+
+              # Show deployment info from public directory
+              if [ -f "public/deployment-info.json" ]; then
+                echo ""
+                echo "📋 Deployment Information:"
+                cat "public/deployment-info.json"
+              fi
+            else
+              echo "⚠️ Warning: No 'public' directory found in artifact"
+              echo "📁 Current directory contents:"
+              ls -la
+
+              # Restore from latest backup
+              echo "🔄 Restoring site from latest backup..."
+              LATEST_BACKUP=$(ls -1t "$SITE_ROOT_PATH/backups" 2>/dev/null | head -1)
+
+              if [[ -n "$LATEST_BACKUP" ]]; then
+                echo "📦 Restoring from backup: $LATEST_BACKUP"
+                cp -r "$SITE_ROOT_PATH/backups/$LATEST_BACKUP" "$SITE_ROOT_PATH/public"
+                echo "✅ Site restored from backup successfully"
+              else
+                echo "⚠️ No backups found to restore from"
+                echo "🚨 Site will be unavailable until manual intervention"
+              fi
+
+              echo "❌ Deployment failed with exit code 1"
+              exit 1
+            fi
+
+            echo "✅ Deployment completed successfully!"
+            echo "📁 Site files deployed to: $SITE_ROOT_PATH/public"
+            echo "📊 Deployment info saved to: $SITE_ROOT_PATH/deployment-info.json"
+
+      - name: Deployment Summary
+        if: steps.validate.outputs.should_deploy == 'true'
+        run: |
+          echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Status**: Successfully deployed to production" >> $GITHUB_STEP_SUMMARY
+          echo "📦 **Version**: ${{ steps.info.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 **Release**: [${{ steps.info.outputs.tag }}](${{ steps.info.outputs.release_url }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 Deployment Details:" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tag**: ${{ steps.info.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Artifact**: ${{ steps.info.outputs.artifact_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: [${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deployed At**: $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deployed to**: markly.siaji.com" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+      - name: Skipped Deployment Summary
+        if: steps.validate.outputs.should_deploy == 'false'
+        run: |
+          echo "## ⚠️ Deployment Skipped" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Deployment was skipped due to missing required secrets." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔐 Required Secrets" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Please configure the following secrets in repository settings:" >> $GITHUB_STEP_SUMMARY
+          echo "**Settings → Secrets and variables → Actions**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Secret Name | Description |" >> $GITHUB_STEP_SUMMARY
+          echo "|------------|-------------|" >> $GITHUB_STEP_SUMMARY
+          echo "| \`SSH_HOST\` | Production server hostname |" >> $GITHUB_STEP_SUMMARY
+          echo "| \`SSH_USERNAME\` | SSH username |" >> $GITHUB_STEP_SUMMARY
+          echo "| \`SSH_PRIVATE_KEY\` | SSH private key for authentication |" >> $GITHUB_STEP_SUMMARY
+          echo "| \`SSH_PORT\` | SSH port (optional, defaults to 22) |" >> $GITHUB_STEP_SUMMARY
+          echo "| \`ENV_SITE_ROOT_PATH\` | Deployment directory on server |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📚 Documentation" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "See [\`.agent/DEPLOYMENT.md\`](.agent/DEPLOYMENT.md) for detailed setup instructions." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY

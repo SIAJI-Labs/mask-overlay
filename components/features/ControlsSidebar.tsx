@@ -4,7 +4,7 @@
 import React, { useRef } from "react";
 
 // Icons
-import { Palette } from "lucide-react";
+import { Palette, Download, FileArchive, Files, Loader2 } from "lucide-react";
 
 // Shadcn/UI
 import { Input } from "@/components/ui/input";
@@ -25,21 +25,35 @@ import {
 } from "@/components/ui/alert-dialog";
 
 // Types
-import type { WatermarkSettings } from "./CanvasPreview";
+import type { WatermarkLayer, ExportMode } from "@/types/files";
+import type { Template } from "@/types/templates";
+import { TemplateManager } from "./TemplateManager";
+import { LayerPanel } from "./LayerPanel";
 
 interface ControlsSidebarProps {
-    settings: WatermarkSettings;
-    onSettingsChange: (settings: Partial<WatermarkSettings>) => void;
+    layer: WatermarkLayer;
+    onLayerChange: (layer: Partial<Omit<WatermarkLayer, "id">>) => void;
+    layers: WatermarkLayer[];
+    activeLayerIndex: number;
+    onAddLayer: () => void;
+    onRemoveLayer: (layerId: string) => void;
+    onSelectLayer: (layerIndex: number) => void;
     onReset: () => void;
     onExport: () => void;
+    exportMode?: ExportMode;
+    onExportModeChange?: (mode: ExportMode) => void;
+    fileCount?: number;
+    isExporting?: boolean;
+    templates?: Template[];
+    currentTemplateId?: string | null;
+    templateHasChanges?: boolean;
+    onLoadTemplate?: (layer: WatermarkLayer, templateId: string) => void;
+    onSaveTemplate?: (name: string) => void;
+    onUpdateTemplate?: (id: string) => void;
+    onDiscardTemplate?: () => void;
+    onRenameTemplate?: (id: string, newName: string) => void;
+    onDeleteTemplate?: (id: string) => void;
 }
-
-const PRESETS = [
-    { label: "CONFIDENTIAL", value: "CONFIDENTIAL" },
-    { label: "FOR VERIFICATION ONLY", value: "FOR VERIFICATION ONLY" },
-    { label: "SAMPLE", value: "SAMPLE" },
-    { label: "DRAFT", value: "DRAFT" },
-];
 
 const COLOR_PRESETS = [
     { label: "Black", value: "#000000" },
@@ -75,10 +89,28 @@ function ColorPickerButton({ value, onChange }: { value: string; onChange: (colo
 }
 
 export function ControlsSidebar({
-    settings,
-    onSettingsChange,
+    layer,
+    onLayerChange,
+    layers,
+    activeLayerIndex,
+    onAddLayer,
+    onRemoveLayer,
+    onSelectLayer,
     onReset,
     onExport,
+    exportMode = "single",
+    onExportModeChange,
+    fileCount = 1,
+    isExporting = false,
+    templates = [],
+    currentTemplateId,
+    templateHasChanges,
+    onLoadTemplate,
+    onSaveTemplate,
+    onUpdateTemplate,
+    onDiscardTemplate,
+    onRenameTemplate,
+    onDeleteTemplate,
 }: ControlsSidebarProps) {
     return (
         <aside className="w-full h-full bg-background flex flex-col">
@@ -88,23 +120,34 @@ export function ControlsSidebar({
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-6">
-                {/* Quick Presets */}
-                <div className="space-y-3">
-                    <Label className="text-sm font-medium">Quick Presets</Label>
-                    <div className="grid grid-cols-2 gap-2">
-                        {PRESETS.map((preset) => (
-                            <Button
-                                key={preset.value}
-                                variant={settings.text === preset.value ? "default" : "outline"}
-                                size="sm"
-                                className="text-xs h-8"
-                                onClick={() => onSettingsChange({ text: preset.value })}
-                            >
-                                {preset.label}
-                            </Button>
-                        ))}
+                {/* Templates */}
+                {onLoadTemplate && onSaveTemplate && onUpdateTemplate && onDiscardTemplate && onRenameTemplate && onDeleteTemplate && (
+                    <div className="space-y-3">
+                        <Label className="text-sm font-medium">Templates</Label>
+                        <TemplateManager
+                            templates={templates}
+                            currentTemplateId={currentTemplateId}
+                            hasChanges={templateHasChanges}
+                            onLoad={onLoadTemplate}
+                            onSave={onSaveTemplate}
+                            onUpdate={onUpdateTemplate}
+                            onDiscard={onDiscardTemplate}
+                            onRename={onRenameTemplate}
+                            onDelete={onDeleteTemplate}
+                        />
                     </div>
-                </div>
+                )}
+
+                <Separator />
+
+                {/* Layer Panel */}
+                <LayerPanel
+                    layers={layers}
+                    activeLayerIndex={activeLayerIndex}
+                    onSelectLayer={onSelectLayer}
+                    onAddLayer={onAddLayer}
+                    onRemoveLayer={onRemoveLayer}
+                />
 
                 <Separator />
 
@@ -115,14 +158,14 @@ export function ControlsSidebar({
                             Watermark Text
                         </Label>
                         <span className="text-xs text-muted-foreground">
-                            {settings.text.length}/50
+                            {layer.text.length}/50
                         </span>
                     </div>
                     <Input
                         id="watermark-text"
-                        value={settings.text}
+                        value={layer.text}
                         onChange={(e) =>
-                            onSettingsChange({ text: e.target.value.slice(0, 50) })
+                            onLayerChange({ text: e.target.value.slice(0, 50) })
                         }
                         placeholder="Enter watermark text..."
                         maxLength={50}
@@ -136,16 +179,16 @@ export function ControlsSidebar({
                     <Label className="text-sm font-medium">Pattern Mode</Label>
                     <div className="grid grid-cols-2 gap-2">
                         <Button
-                            variant={settings.mode === "single" ? "default" : "outline"}
+                            variant={layer.mode === "single" ? "default" : "outline"}
                             size="sm"
-                            onClick={() => onSettingsChange({ mode: "single" })}
+                            onClick={() => onLayerChange({ mode: "single" })}
                         >
                             Single
                         </Button>
                         <Button
-                            variant={settings.mode === "diagonal" ? "default" : "outline"}
+                            variant={layer.mode === "diagonal" ? "default" : "outline"}
                             size="sm"
-                            onClick={() => onSettingsChange({ mode: "diagonal" })}
+                            onClick={() => onLayerChange({ mode: "diagonal" })}
                         >
                             Diagonal Repeat
                         </Button>
@@ -159,12 +202,12 @@ export function ControlsSidebar({
                     <div className="flex justify-between items-center">
                         <Label className="text-sm font-medium">Font Size</Label>
                         <span className="text-xs text-muted-foreground tabular-nums">
-                            {settings.fontSize}px
+                            {layer.fontSize}px
                         </span>
                     </div>
                     <Slider
-                        value={[settings.fontSize]}
-                        onValueChange={([value]) => onSettingsChange({ fontSize: value })}
+                        value={[layer.fontSize]}
+                        onValueChange={([value]) => onLayerChange({ fontSize: value })}
                         min={12}
                         max={72}
                         step={1}
@@ -176,12 +219,12 @@ export function ControlsSidebar({
                     <div className="flex justify-between items-center">
                         <Label className="text-sm font-medium">Opacity</Label>
                         <span className="text-xs text-muted-foreground tabular-nums">
-                            {settings.opacity}%
+                            {layer.opacity}%
                         </span>
                     </div>
                     <Slider
-                        value={[settings.opacity]}
-                        onValueChange={([value]) => onSettingsChange({ opacity: value })}
+                        value={[layer.opacity]}
+                        onValueChange={([value]) => onLayerChange({ opacity: value })}
                         min={0}
                         max={100}
                         step={1}
@@ -193,12 +236,12 @@ export function ControlsSidebar({
                     <div className="flex justify-between items-center">
                         <Label className="text-sm font-medium">Angle</Label>
                         <span className="text-xs text-muted-foreground tabular-nums">
-                            {settings.angle}°
+                            {layer.angle}°
                         </span>
                     </div>
                     <Slider
-                        value={[settings.angle]}
-                        onValueChange={([value]) => onSettingsChange({ angle: value })}
+                        value={[layer.angle]}
+                        onValueChange={([value]) => onLayerChange({ angle: value })}
                         min={-45}
                         max={45}
                         step={1}
@@ -206,17 +249,17 @@ export function ControlsSidebar({
                 </div>
 
                 {/* Gap (only for diagonal mode) */}
-                {settings.mode === "diagonal" && (
+                {layer.mode === "diagonal" && (
                     <div className="space-y-3">
                         <div className="flex justify-between items-center">
                             <Label className="text-sm font-medium">Text Gap</Label>
                             <span className="text-xs text-muted-foreground tabular-nums">
-                                {settings.gap.toFixed(1)}x
+                                {layer.gap.toFixed(1)}x
                             </span>
                         </div>
                         <Slider
-                            value={[settings.gap]}
-                            onValueChange={([value]) => onSettingsChange({ gap: value })}
+                            value={[layer.gap]}
+                            onValueChange={([value]) => onLayerChange({ gap: value })}
                             min={1}
                             max={3}
                             step={0.1}
@@ -225,18 +268,18 @@ export function ControlsSidebar({
                 )}
 
                 {/* Offset X/Y (only for single mode) */}
-                {settings.mode === "single" && (
+                {layer.mode === "single" && (
                     <>
                         <div className="space-y-3">
                             <div className="flex justify-between items-center">
                                 <Label className="text-sm font-medium">Offset X</Label>
                                 <span className="text-xs text-muted-foreground tabular-nums">
-                                    {settings.offsetX}%
+                                    {layer.offsetX}%
                                 </span>
                             </div>
                             <Slider
-                                value={[settings.offsetX]}
-                                onValueChange={([value]) => onSettingsChange({ offsetX: value })}
+                                value={[layer.offsetX]}
+                                onValueChange={([value]) => onLayerChange({ offsetX: value })}
                                 min={-50}
                                 max={50}
                                 step={1}
@@ -246,12 +289,12 @@ export function ControlsSidebar({
                             <div className="flex justify-between items-center">
                                 <Label className="text-sm font-medium">Offset Y</Label>
                                 <span className="text-xs text-muted-foreground tabular-nums">
-                                    {settings.offsetY}%
+                                    {layer.offsetY}%
                                 </span>
                             </div>
                             <Slider
-                                value={[settings.offsetY]}
-                                onValueChange={([value]) => onSettingsChange({ offsetY: value })}
+                                value={[layer.offsetY]}
+                                onValueChange={([value]) => onLayerChange({ offsetY: value })}
                                 min={-50}
                                 max={50}
                                 step={1}
@@ -269,27 +312,82 @@ export function ControlsSidebar({
                         {COLOR_PRESETS.map((color) => (
                             <button
                                 key={color.value}
-                                className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${settings.color === color.value
+                                className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${layer.color === color.value
                                     ? "border-primary ring-2 ring-primary/30"
                                     : "border-muted-foreground/30"
                                     }`}
                                 style={{ backgroundColor: color.value }}
-                                onClick={() => onSettingsChange({ color: color.value })}
+                                onClick={() => onLayerChange({ color: color.value })}
                                 title={color.label}
                             />
                         ))}
                         <ColorPickerButton
-                            value={settings.color}
-                            onChange={(color) => onSettingsChange({ color })}
+                            value={layer.color}
+                            onChange={(color) => onLayerChange({ color })}
                         />
                     </div>
                 </div>
             </div>
 
             {/* Action Buttons */}
-            <div className="p-4 border-t bg-muted/10 space-y-2">
-                <Button className="w-full" onClick={onExport} aria-label="Export watermarked image">
-                    Export Image
+            <div className="p-4 border-t bg-muted/10 space-y-3">
+                {/* Export Mode Selection (only show for multiple files) */}
+                {fileCount > 1 && onExportModeChange && (
+                    <div className="space-y-2">
+                        <Label className="text-sm font-medium">Export Mode</Label>
+                        <div className="grid grid-cols-3 gap-1">
+                            <Button
+                                variant={exportMode === "single" ? "default" : "outline"}
+                                size="sm"
+                                className="text-xs h-8 px-2"
+                                onClick={() => onExportModeChange("single")}
+                                title="Export current image only"
+                            >
+                                <Download className="w-3 h-3 mr-1" />
+                                Current
+                            </Button>
+                            <Button
+                                variant={exportMode === "bulk" ? "default" : "outline"}
+                                size="sm"
+                                className="text-xs h-8 px-2"
+                                onClick={() => onExportModeChange("bulk")}
+                                title="Download all files separately"
+                            >
+                                <Files className="w-3 h-3 mr-1" />
+                                All ({fileCount})
+                            </Button>
+                            <Button
+                                variant={exportMode === "zip" ? "default" : "outline"}
+                                size="sm"
+                                className="text-xs h-8 px-2"
+                                onClick={() => onExportModeChange("zip")}
+                                title="Download all as ZIP archive"
+                            >
+                                <FileArchive className="w-3 h-3 mr-1" />
+                                ZIP
+                            </Button>
+                        </div>
+                    </div>
+                )}
+
+                <Button
+                    className="w-full"
+                    onClick={onExport}
+                    disabled={isExporting}
+                    aria-label="Export watermarked image"
+                >
+                    {isExporting ? (
+                        <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Exporting...
+                        </>
+                    ) : (
+                        exportMode === "single" || fileCount === 1
+                            ? "Export Image"
+                            : exportMode === "bulk"
+                                ? `Export All (${fileCount})`
+                                : "Export as ZIP"
+                    )}
                 </Button>
                 <AlertDialog>
                     <AlertDialogTrigger asChild>
@@ -301,7 +399,7 @@ export function ControlsSidebar({
                         <AlertDialogHeader>
                             <AlertDialogTitle>Reset everything?</AlertDialogTitle>
                             <AlertDialogDescription>
-                                This will clear the current image and reset all watermark settings to defaults. You&apos;ll need to upload a new image.
+                                This will clear {fileCount > 1 ? `all ${fileCount} images` : "the current image"} and reset all watermark settings to defaults. You&apos;ll need to upload new images.
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>

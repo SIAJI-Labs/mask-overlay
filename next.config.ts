@@ -11,6 +11,8 @@ const withPWA = withPWAInit({
 const nextConfig: NextConfig = {
   // Allow next-pwa webpack config with Turbopack
   turbopack: {},
+  // Static export configuration for fully static site
+  output: 'export',
 };
 
 export default withPWA(nextConfig);

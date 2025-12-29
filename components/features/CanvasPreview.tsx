@@ -15,24 +15,15 @@ import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 // Utils
 import { cn } from "@/lib/utils";
 
-export interface WatermarkSettings {
-    text: string;
-    fontSize: number;
-    opacity: number;
-    angle: number;
-    color: string;
-    mode: "single" | "diagonal";
-    gap: number;
-    offsetX: number; // -50 to 50 percent offset
-    offsetY: number; // -50 to 50 percent offset
-}
+// Types
+import type { WatermarkLayer } from "@/types/files";
 
 interface CanvasPreviewProps {
     imageSrc: string;
-    settings: WatermarkSettings;
+    layers: WatermarkLayer[];
 }
 
-export function CanvasPreview({ imageSrc, settings }: CanvasPreviewProps) {
+export function CanvasPreview({ imageSrc, layers }: CanvasPreviewProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -124,48 +115,48 @@ export function CanvasPreview({ imageSrc, settings }: CanvasPreviewProps) {
         );
         ctx.restore();
 
-        // Draw watermark
-        if (settings.text.trim()) {
-            ctx.save();
-            ctx.globalAlpha = settings.opacity / 100;
-            ctx.fillStyle = settings.color;
+        // Draw all watermark layers
+        layers.forEach(layer => {
+            if (!layer.text.trim()) return;
 
-            const scaledFontSize = settings.fontSize * (canvasWidth / 800);
+            ctx.save();
+            ctx.globalAlpha = layer.opacity / 100;
+            ctx.fillStyle = layer.color;
+
+            const scaledFontSize = layer.fontSize * (canvasWidth / 800);
             ctx.font = `bold ${scaledFontSize}px sans-serif`;
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
 
-            if (settings.mode === "single") {
+            if (layer.mode === "single") {
                 // Apply offset as percentage of canvas dimensions
-                const offsetX = (settings.offsetX / 100) * canvas.width;
-                const offsetY = (settings.offsetY / 100) * canvas.height;
+                const offsetX = (layer.offsetX / 100) * canvas.width;
+                const offsetY = (layer.offsetY / 100) * canvas.height;
 
                 ctx.translate(canvas.width / 2 + offsetX, canvas.height / 2 + offsetY);
-                ctx.rotate((settings.angle * Math.PI) / 180);
-                ctx.fillText(settings.text, 0, 0);
+                ctx.rotate((layer.angle * Math.PI) / 180);
+                ctx.fillText(layer.text, 0, 0);
             } else {
-                const textWidth = ctx.measureText(settings.text).width;
-                const baseGap = textWidth * settings.gap;
-                const rowGap = scaledFontSize * settings.gap * 1.5;
+                const textWidth = ctx.measureText(layer.text).width;
+                const baseGap = textWidth * layer.gap;
+                const rowGap = scaledFontSize * layer.gap * 1.5;
                 const diagonal = Math.sqrt(canvas.width ** 2 + canvas.height ** 2);
                 const rows = Math.ceil(diagonal / rowGap) + 2;
                 const cols = Math.ceil(diagonal / baseGap) + 2;
 
-
-
                 ctx.translate(canvas.width / 2, canvas.height / 2);
-                ctx.rotate((settings.angle * Math.PI) / 180);
+                ctx.rotate((layer.angle * Math.PI) / 180);
 
                 for (let row = -rows; row <= rows; row++) {
                     for (let col = -cols; col <= cols; col++) {
-                        ctx.fillText(settings.text, col * baseGap, row * rowGap);
+                        ctx.fillText(layer.text, col * baseGap, row * rowGap);
                     }
                 }
             }
 
             ctx.restore();
-        }
-    }, [originalImage, settings, dimensions, imageRotation]);
+        });
+    }, [originalImage, layers, dimensions, imageRotation]);
 
     // Pan handlers
     const handleMouseDown = useCallback((e: React.MouseEvent) => {
