@@ -128,10 +128,10 @@ async function main() {
       process.exit(1);
     }
 
-    // Switch to develop branch
-    log('\n📌 Switching to develop branch...', colors.blue);
+    // Switch to main branch
+    log('\n📌 Switching to main branch...', colors.blue);
     if (!DRY_RUN) {
-      exec('git checkout develop');
+      exec('git checkout main');
     }
 
     // Fetch latest tags

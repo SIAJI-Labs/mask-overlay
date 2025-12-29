@@ -25,6 +25,7 @@ export function Header() {
                         width={28}
                         height={28}
                         className="rounded"
+                        unoptimized
                     />
                     <span className="font-bold hidden sm:inline-block">Privacy Watermark Tool</span>
                     <span className="font-bold sm:hidden">Privacy Mask</span>
