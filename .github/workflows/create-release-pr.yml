@@ -209,7 +209,6 @@ jobs:
             --title "Release ${{ needs.extract-release-info.outputs.tag }}" \
             --body-file pr_body.md \
             --label "release" \
-            --assignee "${{ github.repository_owner }}"
 
           echo "✅ Created release PR"
         env:
