@@ -1,15 +1,26 @@
 name: Deploy Site
 
 on:
+  # Trigger when build-site workflow completes
   pull_request:
     types: [closed]
     branches:
       - release
+
+  # Optional manual trigger for testing/debugging
   workflow_dispatch:
     inputs:
-      tag:
-        description: 'Release tag to deploy (e.g., v0.2.0)'
-        required: true
+      version_override:
+        description: 'Override version (e.g., v0.2.0)'
+        required: false
+        type: string
+      release_url_override:
+        description: 'Override release URL'
+        required: false
+        type: string
+      artifact_name_override:
+        description: 'Override artifact name'
+        required: false
         type: string
 
 permissions:
@@ -73,48 +84,76 @@ jobs:
             echo "should_deploy=true" >> $GITHUB_OUTPUT
           fi
 
-      - name: Checkout code
-        if: steps.validate.outputs.should_deploy == 'true'
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Extract deployment info
+      - name: Extract deployment info and check for artifacts
         if: steps.validate.outputs.should_deploy == 'true'
         id: info
         run: |
-          # Get version from workflow dispatch or latest tag
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            TAG="${{ github.event.inputs.tag }}"
+          # Extract deployment information
+          VERSION=""
+          RELEASE_URL=""
+          ARTIFACT_NAME=""
+          SOURCE="push"
+
+          # Check if manual override is provided
+          if [ -n "${{ github.event.inputs.version_override }}" ]; then
+            VERSION="${{ github.event.inputs.version_override }}"
+            echo "📌 Using manual version override: $VERSION"
           else
-            TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+            # Always use latest release with site assets
+            echo "🏷️  Getting latest released tag..."
+            LATEST_TAG=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              "https://api.github.com/repos/${{ github.repository }}/releases/latest" | \
+              jq -r '.tag_name')
+
+            if [[ -n "$LATEST_TAG" && "$LATEST_TAG" != "null" ]]; then
+              VERSION="$LATEST_TAG"
+              echo "✅ Found latest release tag: $VERSION"
+            else
+              echo "❌ No release tags found in repository"
+              echo "This deployment requires at least one published release tag"
+              exit 1
+            fi
           fi
 
-          VERSION=${TAG#v}
-          RELEASE_URL="https://github.com/${{ github.repository }}/releases/tag/${TAG}"
-          ARTIFACT_NAME="markly-site-${TAG}.tar.gz"
+          # Get release assets from the release
+          echo "🔍 Checking for site assets in release: $VERSION..."
+          RELEASE_ASSETS=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/$VERSION")
 
-          # Get artifact download URL from release
-          ARTIFACT_URL=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/releases/tags/${TAG}" | \
-            jq -r ".assets[] | select(.name == \"${ARTIFACT_NAME}\") | .browser_download_url")
+          # Look for the site tar.gz asset (with null safety)
+          SITE_ASSET=$(echo "$RELEASE_ASSETS" | \
+            jq -r '.assets[] | select(.name and (.name | contains("markly-site")) and (.name | endswith(".tar.gz")))')
 
-          if [ -z "$ARTIFACT_URL" ] || [ "$ARTIFACT_URL" == "null" ]; then
-            echo "❌ No site asset found for release ${TAG}"
+          if [[ -n "$SITE_ASSET" && "$SITE_ASSET" != "null" ]]; then
+            ARTIFACT_NAME=$(echo "$SITE_ASSET" | jq -r '.name')
+            ARTIFACT_URL=$(echo "$SITE_ASSET" | jq -r '.browser_download_url')
+            RELEASE_URL="https://github.com/${{ github.repository }}/releases/tag/$VERSION"
+            SOURCE="release"
+            echo "✅ Found site asset: $ARTIFACT_NAME"
+            echo "📥 Download URL: ${ARTIFACT_URL:0:50}... (truncated for security)"
+          else
+            echo "❌ No site assets found for release $VERSION"
+            echo "🔍 DEBUG: Available assets:"
+            echo "$RELEASE_ASSETS" | jq -r '.assets[] | select(.name) | .name' | head -5
+            echo "This could mean:"
+            echo "  - Release was created without site assets"
+            echo "  - Site asset has different naming pattern"
+            echo "  - Asset upload failed during release"
             exit 1
           fi
 
-          echo "tag=${TAG}" >> $GITHUB_OUTPUT
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
-          echo "release_url=${RELEASE_URL}" >> $GITHUB_OUTPUT
-          echo "artifact_name=${ARTIFACT_NAME}" >> $GITHUB_OUTPUT
-          echo "artifact_url=${ARTIFACT_URL}" >> $GITHUB_OUTPUT
+          # Output for use in later steps
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "release_url=$RELEASE_URL" >> $GITHUB_OUTPUT
+          echo "artifact_name=$ARTIFACT_NAME" >> $GITHUB_OUTPUT
+          echo "artifact_url=$ARTIFACT_URL" >> $GITHUB_OUTPUT
+          echo "source=$SOURCE" >> $GITHUB_OUTPUT
 
           echo "📋 Deployment Information:"
-          echo "  Version: ${VERSION}"
-          echo "  Tag: ${TAG}"
-          echo "  Release URL: ${RELEASE_URL}"
-          echo "  Artifact: ${ARTIFACT_NAME}"
+          echo "  Version: $VERSION"
+          echo "  Release URL: $RELEASE_URL"
+          echo "  Artifact: $ARTIFACT_NAME"
+          echo "  Source: $SOURCE"
 
       - name: Deploy to server via SSH
         if: steps.validate.outputs.should_deploy == 'true'
@@ -126,20 +165,22 @@ jobs:
           port: ${{ secrets.SSH_PORT || 22 }}
           timeout: 300s
           command_timeout: 60s
-          envs: VERSION,RELEASE_URL,ARTIFACT_NAME,ARTIFACT_URL,COMMIT_SHA,SITE_ROOT_PATH,GITHUB_TOKEN
+          envs: VERSION,RELEASE_URL,ARTIFACT_NAME,ARTIFACT_URL,TRIGGER_SOURCE,COMMIT_SHA,SITE_ROOT_PATH
           script: |
             # Set environment variables
             export VERSION="${{ steps.info.outputs.version }}"
             export RELEASE_URL="${{ steps.info.outputs.release_url }}"
             export ARTIFACT_NAME="${{ steps.info.outputs.artifact_name }}"
             export ARTIFACT_URL="${{ steps.info.outputs.artifact_url }}"
+            export TRIGGER_SOURCE="${{ steps.info.outputs.source }}"
             export COMMIT_SHA="${{ github.sha }}"
             export SITE_ROOT_PATH="${{ secrets.ENV_SITE_ROOT_PATH }}"
-            export GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}"
 
             echo "🚀 Starting Markly Site Deployment"
             echo "Version: $VERSION"
+            echo "Source: $TRIGGER_SOURCE"
             echo "Artifact: $ARTIFACT_NAME"
+            echo "Artifact URL: ${ARTIFACT_URL:0:50}... (truncated for security)"
             echo "Site Root Path: $SITE_ROOT_PATH"
 
             # Navigate to site root path
@@ -171,63 +212,124 @@ jobs:
             # Clean up current public directory if exists
             if [ -d "public" ]; then
               echo "🧹 Cleaning up current public directory..."
-              sudo -u www rm -rf "$SITE_ROOT_PATH/public/"
+              sudo -u www rm -rf public/
               echo "✅ Public directory cleanup completed"
             fi
 
             # Create deployment info
             echo "📊 Creating deployment-info.json..."
-            sudo -u www tee "$SITE_ROOT_PATH/deployment-info.json" > /dev/null <<EOF
+            sudo -u www tee "deployment-info.json" > /dev/null <<EOF
             {
               "version": "$VERSION",
               "release_url": "$RELEASE_URL",
               "artifact_name": "$ARTIFACT_NAME",
+              "trigger_source": "$TRIGGER_SOURCE",
               "commit_sha": "$COMMIT_SHA",
               "deployed_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
               "deployed_by": "github-actions",
               "site_root_path": "$SITE_ROOT_PATH"
             }
             EOF
-            echo "✅ Deployment info created"
+            echo "✅ Deployment info created: $SITE_ROOT_PATH/deployment-info.json"
 
             # Download artifact directly from GitHub to server
-            echo "📥 Downloading artifact: $ARTIFACT_NAME"
-            ARTIFACT_FILE="artifact.tar.gz"
-            sudo -u www curl -L -H "Authorization: token $GITHUB_TOKEN" \
-              "$ARTIFACT_URL" -o "$ARTIFACT_FILE"
+            echo "⬇️  Downloading artifact: $ARTIFACT_NAME"
+            echo "🔍 Using release asset download URL"
+            echo "📡 Release asset: $ARTIFACT_NAME"
+            echo "🔗 Download URL: ${ARTIFACT_URL:0:50}... (truncated for security)"
 
-            # Extract artifact
-            echo "📂 Extracting artifact to $SITE_ROOT_PATH..."
-            sudo -u www tar -xzf "$ARTIFACT_FILE"
-            sudo -u www rm "$ARTIFACT_FILE"
+            if [ -n "$ARTIFACT_URL" ]; then
+              echo "✅ Successfully found artifact download URL"
+              echo "📥 Downloading artifact from release..."
 
-            # Verify extraction
-            if [ -d "public" ]; then
-              echo "✅ Artifact extracted successfully with public directory"
-              echo "📁 Public directory contents:"
-              ls -la public/ | head -10
+              # Download release asset (public, no auth needed)
+              ARTIFACT_FILE="artifact.tar.gz"
+              echo "📦 Downloading release asset (tar.gz format)..."
+              sudo -u www curl -L -f "$ARTIFACT_URL" -o "$ARTIFACT_FILE"
 
-              # Set proper permissions
-              echo "🔐 Setting permissions..."
-              sudo -u www find public -type d -exec chmod 755 {} \;
-              sudo -u www find public -type f -exec chmod 644 {} \;
-              echo "✅ Permissions set"
+              # Check if download succeeded
+              if [ ! -f "$ARTIFACT_FILE" ] || [ ! -s "$ARTIFACT_FILE" ]; then
+                echo "❌ Failed to download artifact"
+                FILESIZE=$(stat -c%s "$ARTIFACT_FILE" 2>/dev/null || echo "0")
+                echo "File size: $FILESIZE bytes"
 
-              # Show deployment info from public directory
-              if [ -f "public/deployment-info.json" ]; then
-                echo ""
-                echo "📋 Deployment Information:"
-                cat "public/deployment-info.json"
+                if [ "$IS_INITIAL_DEPLOYMENT" = false ]; then
+                  echo "🔄 Restoring site from latest backup..."
+                  LATEST_BACKUP=$(ls -1t "$SITE_ROOT_PATH/backups" 2>/dev/null | head -1)
+                  if [[ -n "$LATEST_BACKUP" ]]; then
+                    echo "📦 Restoring from backup: $LATEST_BACKUP"
+                    sudo -u www cp -r "$SITE_ROOT_PATH/backups/$LATEST_BACKUP" "$SITE_ROOT_PATH/public"
+                    echo "✅ Site restored from backup successfully"
+                  fi
+                fi
+                exit 1
               fi
 
-              # Mark initial deployment as successful
-              if [ "$IS_INITIAL_DEPLOYMENT" = true ]; then
-                echo "🎉 Initial deployment completed successfully!"
+              FILESIZE=$(stat -c%s "$ARTIFACT_FILE" 2>/dev/null || echo "unknown")
+              echo "✅ Downloaded artifact ($FILESIZE bytes)"
+
+              # Extract artifact
+              echo "📂 Extracting tar.gz artifact to $SITE_ROOT_PATH..."
+              sudo -u www tar -xzf "$ARTIFACT_FILE"
+              sudo -u www rm "$ARTIFACT_FILE"
+
+              # Check if public directory exists (expected structure)
+              if [ -d "public" ]; then
+                echo "✅ Artifact extracted successfully with public directory"
+                echo "📁 Public directory contents:"
+                ls -la public/ | head -10
+
+                # Set proper permissions
+                echo "🔐 Setting permissions..."
+                sudo -u www find public -type d -exec chmod 755 {} \;
+                sudo -u www find public -type f -exec chmod 644 {} \;
+                echo "✅ Permissions set"
+
+                # Show deployment info from public directory
+                if [ -f "public/deployment-info.json" ]; then
+                  echo ""
+                  echo "📋 Deployment Information:"
+                  cat "public/deployment-info.json"
+                fi
+
+                # Mark initial deployment as successful
+                if [ "$IS_INITIAL_DEPLOYMENT" = true ]; then
+                  echo "🎉 Initial deployment completed successfully!"
+                fi
+              else
+                echo "⚠️  Warning: No 'public' directory found in artifact"
+                echo "📁 Current directory contents:"
+                ls -la
+                echo ""
+
+                # Only try to restore if not initial deployment
+                if [ "$IS_INITIAL_DEPLOYMENT" = false ]; then
+                  echo "🔄 Restoring site from latest backup due to extraction failure..."
+                  LATEST_BACKUP=$(ls -1t "$SITE_ROOT_PATH/backups" 2>/dev/null | head -1)
+
+                  if [[ -n "$LATEST_BACKUP" ]]; then
+                    echo "📦 Restoring from backup: $LATEST_BACKUP"
+                    sudo -u www cp -r "$SITE_ROOT_PATH/backups/$LATEST_BACKUP" "$SITE_ROOT_PATH/public"
+                    echo "✅ Site restored from backup successfully"
+                  else
+                    echo "⚠️  No backups found to restore from"
+                    echo "🚨 Site will be unavailable until manual intervention"
+                  fi
+                else
+                  echo "⚠️ Initial deployment failed - no public directory in artifact"
+                  echo "🚨 Please check the build process"
+                fi
+
+                echo "❌ Deployment failed with exit code 1"
+                exit 1
               fi
             else
-              echo "⚠️ Warning: No 'public' directory found in artifact"
-              echo "📁 Current directory contents:"
-              ls -la
+              echo "❌ Failed to get artifact download URL for: $ARTIFACT_NAME"
+              echo "This could mean:"
+              echo "  - Artifact doesn't exist"
+              echo "  - GitHub token permissions insufficient"
+              echo "  - Artifact has expired"
+              echo "  - Artifact name mismatch"
 
               # Only try to restore if not initial deployment
               if [ "$IS_INITIAL_DEPLOYMENT" = false ]; then
@@ -239,12 +341,9 @@ jobs:
                   sudo -u www cp -r "$SITE_ROOT_PATH/backups/$LATEST_BACKUP" "$SITE_ROOT_PATH/public"
                   echo "✅ Site restored from backup successfully"
                 else
-                  echo "⚠️ No backups found to restore from"
+                  echo "⚠️  No backups found to restore from"
                   echo "🚨 Site will be unavailable until manual intervention"
                 fi
-              else
-                echo "⚠️ Initial deployment failed - no public directory in artifact"
-                echo "🚨 Please check the build process"
               fi
 
               echo "❌ Deployment failed with exit code 1"
@@ -262,10 +361,10 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "✅ **Status**: Successfully deployed to production" >> $GITHUB_STEP_SUMMARY
           echo "📦 **Version**: ${{ steps.info.outputs.version }}" >> $GITHUB_STEP_SUMMARY
-          echo "🔗 **Release**: [${{ steps.info.outputs.tag }}](${{ steps.info.outputs.release_url }})" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 **Release**: [${{ steps.info.outputs.version }}](${{ steps.info.outputs.release_url }})" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📋 Deployment Details:" >> $GITHUB_STEP_SUMMARY
-          echo "- **Tag**: ${{ steps.info.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Trigger**: ${{ steps.info.outputs.source }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Artifact**: ${{ steps.info.outputs.artifact_name }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit**: [${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})" >> $GITHUB_STEP_SUMMARY
           echo "- **Deployed At**: $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_STEP_SUMMARY
