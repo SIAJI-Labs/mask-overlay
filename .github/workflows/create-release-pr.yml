@@ -205,10 +205,9 @@ jobs:
           # Create the PR
           gh pr create \
             --base release \
-            --head develop \
+            --head main \
             --title "Release ${{ needs.extract-release-info.outputs.tag }}" \
-            --body-file pr_body.md \
-            --label "release" \
+            --body-file pr_body.md
 
           echo "✅ Created release PR"
         env:
