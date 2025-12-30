@@ -75,6 +75,7 @@ jobs:
         run: |
           echo "NEXT_PUBLIC_VERSION=${{ needs.extract-release-info.outputs.version }}" >> $GITHUB_ENV
           echo "NEXT_PUBLIC_RELEASE_URL=${{ needs.extract-release-info.outputs.release_url }}" >> $GITHUB_ENV
+          echo "NEXT_PUBLIC_COMMIT_HASH=${{ github.sha }}" >> $GITHUB_ENV
 
       - name: Build Next.js site
         run: npm run build
