@@ -4,7 +4,7 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
 
 // Icons
-import { ZoomIn, ZoomOut, RotateCcw, Hand, RotateCw, Loader2, Maximize2, Move, Minimize, Maximize } from "lucide-react";
+import { ZoomIn, ZoomOut, RotateCcw, Hand, RotateCw, Loader2, Minimize, Maximize } from "lucide-react";
 
 // Shadcn/UI
 import { Button } from "@/components/ui/button";
@@ -78,7 +78,6 @@ export function CanvasPreview({ imageSrc, layers }: CanvasPreviewProps) {
         // Swap canvas dimensions if rotated 90 or 270 degrees
         const isRotated90 = imageRotation === 90 || imageRotation === 270;
         const imgWidth = isRotated90 ? originalImage.height : originalImage.width;
-        const imgHeight = isRotated90 ? originalImage.width : originalImage.height;
 
         // Set canvas resolution to match the scaled display dimensions for crisp rendering
         canvas.width = dimensions.width;
