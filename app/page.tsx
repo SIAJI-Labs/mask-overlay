@@ -31,7 +31,7 @@ export default function LandingPage() {
             <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
                 <div className="container mx-auto flex h-14 items-center justify-between px-4 md:px-6">
                     <div className="flex items-center gap-2 font-bold text-xl">
-                        <span className="text-primary">Mask</span>Overlay
+                        Markly
                     </div>
                     <div className="flex items-center gap-4">
                         <ThemeToggle />
@@ -68,7 +68,7 @@ export default function LandingPage() {
                         </Button>
                     </Link>
                     <Button variant="outline" size="lg" className="h-12 px-8 text-lg" asChild>
-                        <Link href="https://github.com/sieg-g/mask-overlay" target="_blank">
+                        <Link href="https://github.com/SIAJI-Labs/mask-overlay" target="_blank">
                             <Github className="w-5 h-5 mr-2" />
                             View on GitHub
                         </Link>
@@ -80,7 +80,7 @@ export default function LandingPage() {
             <section className="py-20 bg-muted/50 border-t">
                 <div className="container mx-auto px-4 md:px-6">
                     <div className="text-center mb-16">
-                        <h2 className="text-3xl font-bold tracking-tight md:text-4xl">Why choose MaskOverlay?</h2>
+                        <h2 className="text-3xl font-bold tracking-tight md:text-4xl">Why choose Markly?</h2>
                         <p className="mt-4 text-muted-foreground md:text-lg">Built for privacy, speed, and ease of use.</p>
                     </div>
 
@@ -144,7 +144,7 @@ export default function LandingPage() {
                             <h2 className="text-3xl font-bold tracking-tight md:text-4xl">How &quot;Offline&quot; Actually Works</h2>
                             <div className="space-y-4 text-muted-foreground">
                                 <p>
-                                    Unlike other &quot;free&quot; online tools, MaskOverlay does not have a backend server that processes your images.
+                                    Unlike other &quot;free&quot; online tools, Markly does not have a backend server that processes your images.
                                 </p>
                                 <p>
                                     We use the <strong>HTML5 Canvas API</strong> and <strong>WebAssembly</strong> to process everything directly in your browser&apos;s memory. When you click &quot;Export&quot;, the file is generated instantly on your device.
@@ -298,10 +298,10 @@ export default function LandingPage() {
             <footer className="border-t py-8 bg-muted/30">
                 <div className="container mx-auto px-4 md:px-6 flex flex-col md:flex-row items-center justify-between gap-4">
                     <p className="text-sm text-muted-foreground text-center md:text-left">
-                        &copy; {new Date().getFullYear()} MaskOverlay. Open Source Project.
+                        &copy; {new Date().getFullYear()} Markly. Open Source Project.
                     </p>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <Link href="https://github.com/sieg-g/mask-overlay" className="hover:underline">GitHub</Link>
+                        <Link href="https://github.com/SIAJI-Labs/mask-overlay" className="hover:underline">GitHub</Link>
                         <Link href="/app" className="hover:underline">Launch App</Link>
                     </div>
                 </div>

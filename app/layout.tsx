@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Mask Overlay - Watermark Your Documents",
+  title: "Markly - Watermark Your Documents",
   description: "Securely add watermarks to confidential documents. 100% offline processing - your files never leave your device.",
   manifest: "/manifest.json",
   icons: {
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Mask Overlay",
+    title: "Markly",
   },
 };
 

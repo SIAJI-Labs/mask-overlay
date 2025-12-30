@@ -21,14 +21,14 @@ export function Header() {
                 <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
                     <Image
                         src="/icons/icon-192.png"
-                        alt="Mask Overlay Logo"
+                        alt="Markly Logo"
                         width={28}
                         height={28}
                         className="rounded"
                         unoptimized
                     />
-                    <span className="font-bold hidden sm:inline-block">Privacy Watermark Tool</span>
-                    <span className="font-bold sm:hidden">Privacy Mask</span>
+                    <span className="font-bold hidden sm:inline-block">Markly</span>
+                    <span className="font-bold sm:hidden">Markly</span>
                 </Link>
                 <div className="flex items-center gap-2">
                     <Badge variant="secondary" className="flex items-center gap-1.5 text-xs sm:text-sm font-normal py-1.5 h-7">

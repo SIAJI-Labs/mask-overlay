@@ -1,6 +1,6 @@
 {
-    "name": "Mask Overlay for Confidential Documents",
-    "short_name": "Mask Overlay",
+    "name": "Markly - Confidential Document Watermarking",
+    "short_name": "Markly",
     "description": "Securely add watermarks to confidential documents. 100% offline processing.",
     "start_url": "/",
     "scope": "/",

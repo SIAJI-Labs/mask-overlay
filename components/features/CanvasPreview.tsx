@@ -4,7 +4,7 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
 
 // Icons
-import { ZoomIn, ZoomOut, RotateCcw, Hand, RotateCw, Loader2 } from "lucide-react";
+import { ZoomIn, ZoomOut, RotateCcw, Hand, RotateCw, Loader2, Maximize2, Move, Minimize, Maximize } from "lucide-react";
 
 // Shadcn/UI
 import { Button } from "@/components/ui/button";
@@ -55,32 +55,15 @@ export function CanvasPreview({ imageSrc, layers }: CanvasPreviewProps) {
     const dimensions = React.useMemo(() => {
         if (!originalImage) return { width: 0, height: 0 };
 
-        // Use a reasonable default if container isn't available yet
-        const containerWidth = 800;
-        const containerHeight = 600;
-
         // Swap dimensions if rotated 90 or 270 degrees
         const isRotated90 = imageRotation === 90 || imageRotation === 270;
         const imgWidth = isRotated90 ? originalImage.height : originalImage.width;
         const imgHeight = isRotated90 ? originalImage.width : originalImage.height;
 
-        const imgRatio = imgWidth / imgHeight;
-        const containerRatio = containerWidth / containerHeight;
-
-        let baseWidth: number;
-        let baseHeight: number;
-
-        if (imgRatio > containerRatio) {
-            baseWidth = containerWidth;
-            baseHeight = containerWidth / imgRatio;
-        } else {
-            baseHeight = containerHeight;
-            baseWidth = containerHeight * imgRatio;
-        }
-
+        // Scale represents the multiplier on original dimensions
         return {
-            width: baseWidth * scale,
-            height: baseHeight * scale,
+            width: imgWidth * scale,
+            height: imgHeight * scale,
         };
     }, [originalImage, scale, imageRotation]);
 
@@ -94,11 +77,12 @@ export function CanvasPreview({ imageSrc, layers }: CanvasPreviewProps) {
 
         // Swap canvas dimensions if rotated 90 or 270 degrees
         const isRotated90 = imageRotation === 90 || imageRotation === 270;
-        const canvasWidth = isRotated90 ? originalImage.height : originalImage.width;
-        const canvasHeight = isRotated90 ? originalImage.width : originalImage.height;
+        const imgWidth = isRotated90 ? originalImage.height : originalImage.width;
+        const imgHeight = isRotated90 ? originalImage.width : originalImage.height;
 
-        canvas.width = canvasWidth;
-        canvas.height = canvasHeight;
+        // Set canvas resolution to match the scaled display dimensions for crisp rendering
+        canvas.width = dimensions.width;
+        canvas.height = dimensions.height;
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -106,12 +90,13 @@ export function CanvasPreview({ imageSrc, layers }: CanvasPreviewProps) {
         ctx.save();
         ctx.translate(canvas.width / 2, canvas.height / 2);
         ctx.rotate((imageRotation * Math.PI) / 180);
+        // Draw image scaled to fit the canvas
         ctx.drawImage(
             originalImage,
-            -originalImage.width / 2,
-            -originalImage.height / 2,
-            originalImage.width,
-            originalImage.height
+            -dimensions.width / 2,
+            -dimensions.height / 2,
+            dimensions.width,
+            dimensions.height
         );
         ctx.restore();
 
@@ -123,7 +108,8 @@ export function CanvasPreview({ imageSrc, layers }: CanvasPreviewProps) {
             ctx.globalAlpha = layer.opacity / 100;
             ctx.fillStyle = layer.color;
 
-            const scaledFontSize = layer.fontSize * (canvasWidth / 800);
+            // Scale font based on original image width (not canvas width) for consistency
+            const scaledFontSize = layer.fontSize * (imgWidth / 800) * scale;
             ctx.font = `bold ${scaledFontSize}px sans-serif`;
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
@@ -156,7 +142,7 @@ export function CanvasPreview({ imageSrc, layers }: CanvasPreviewProps) {
 
             ctx.restore();
         });
-    }, [originalImage, layers, dimensions, imageRotation]);
+    }, [originalImage, layers, dimensions, imageRotation, scale]);
 
     // Pan handlers
     const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -182,9 +168,54 @@ export function CanvasPreview({ imageSrc, layers }: CanvasPreviewProps) {
     }, []);
 
     // Zoom handlers
-    const handleZoomIn = () => setScale((s) => Math.min(s + 0.25, 3));
-    const handleZoomOut = () => setScale((s) => Math.max(s - 0.25, 0.5));
+    const handleZoomIn = () => setScale((s) => Math.min(s + 0.05, 1.5));
+    const handleZoomOut = () => setScale((s) => Math.max(s - 0.05, 0.1));
     const handleResetZoom = () => setScale(1);
+    const handleFitToView = () => {
+        if (!scrollContainerRef.current || !originalImage) return;
+
+        const containerRect = scrollContainerRef.current.getBoundingClientRect();
+        const availableWidth = containerRect.width * 0.9;
+        const availableHeight = containerRect.height * 0.9;
+
+        const isRotated90 = imageRotation === 90 || imageRotation === 270;
+        const imgWidth = isRotated90 ? originalImage.height : originalImage.width;
+        const imgHeight = isRotated90 ? originalImage.width : originalImage.height;
+
+        const scaleX = availableWidth / imgWidth;
+        const scaleY = availableHeight / imgHeight;
+        const fitScale = Math.min(scaleX, scaleY);
+
+        setScale(fitScale);
+
+        // Reset scroll position to center
+        scrollContainerRef.current.scrollLeft = 0;
+        scrollContainerRef.current.scrollTop = 0;
+    };
+
+    // Auto fit to view when image loads
+    useEffect(() => {
+        if (!originalImage || !scrollContainerRef.current) return;
+
+        const containerRect = scrollContainerRef.current.getBoundingClientRect();
+        const availableWidth = containerRect.width * 0.9;
+        const availableHeight = containerRect.height * 0.9;
+
+        const isRotated90 = imageRotation === 90 || imageRotation === 270;
+        const imgWidth = isRotated90 ? originalImage.height : originalImage.width;
+        const imgHeight = isRotated90 ? originalImage.width : originalImage.height;
+
+        const scaleX = availableWidth / imgWidth;
+        const scaleY = availableHeight / imgHeight;
+        const fitScale = Math.min(scaleX, scaleY);
+
+        const timer = setTimeout(() => {
+            setScale(fitScale);
+            scrollContainerRef.current!.scrollLeft = 0;
+            scrollContainerRef.current!.scrollTop = 0;
+        }, 50);
+        return () => clearTimeout(timer);
+    }, [originalImage, imageRotation]);
 
     // Image rotation handlers (rotate the actual image)
     const handleRotateLeft = () => {
@@ -212,17 +243,20 @@ export function CanvasPreview({ imageSrc, layers }: CanvasPreviewProps) {
             <div className="flex items-center justify-center gap-1 p-2 border-b bg-background/50 backdrop-blur">
                 {/* Zoom Controls */}
                 <div className="flex items-center gap-1 px-2 border-r">
-                    <Button variant="ghost" size="sm" onClick={handleZoomOut} disabled={scale <= 0.5}>
+                    <Button variant="ghost" size="sm" onClick={handleZoomOut} disabled={scale <= 0.1}>
                         <ZoomOut className="h-4 w-4" />
                     </Button>
                     <span className="text-xs font-medium w-12 text-center tabular-nums">
                         {Math.round(scale * 100)}%
                     </span>
-                    <Button variant="ghost" size="sm" onClick={handleZoomIn} disabled={scale >= 3}>
+                    <Button variant="ghost" size="sm" onClick={handleZoomIn} disabled={scale >= 1.5}>
                         <ZoomIn className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={handleResetZoom} disabled={scale === 1}>
-                        <RotateCcw className="h-4 w-4" />
+                    <Button variant="ghost" size="sm" onClick={handleResetZoom} title="Reset to 100%">
+                        <Maximize className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={handleFitToView} title="Fit to View">
+                        <Minimize className="h-4 w-4" />
                     </Button>
                 </div>
 
@@ -251,6 +285,7 @@ export function CanvasPreview({ imageSrc, layers }: CanvasPreviewProps) {
                 ref={scrollContainerRef}
                 className={cn(
                     "flex-1 overflow-auto",
+                    "scrollbar-hide",
                     isPanning ? "cursor-grabbing" : "cursor-grab"
                 )}
                 onMouseDown={handleMouseDown}
@@ -273,7 +308,7 @@ export function CanvasPreview({ imageSrc, layers }: CanvasPreviewProps) {
                 {/* Inner wrapper to enable proper centering and scrolling */}
                 {!isLoading && (
                     <div
-                        className="min-w-full min-h-full flex items-center justify-center p-8"
+                        className="min-w-full min-h-full flex items-center justify-center"
                         style={{
                             minWidth: dimensions.width + 64,
                             minHeight: dimensions.height + 64,
@@ -282,10 +317,6 @@ export function CanvasPreview({ imageSrc, layers }: CanvasPreviewProps) {
                         <canvas
                             ref={canvasRef}
                             className="shadow-lg rounded-lg bg-white pointer-events-none flex-shrink-0"
-                            style={{
-                                width: dimensions.width || "auto",
-                                height: dimensions.height || "auto",
-                            }}
                             aria-hidden="true"
                         />
                     </div>
