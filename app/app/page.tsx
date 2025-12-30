@@ -54,6 +54,7 @@ export default function Home() {
   // Handle initial file selection or adding more files
   const handleFilesSelect = useCallback((selectedFiles: File[]) => {
     const newFileItems: FileItem[] = [];
+    const firstNewFileIndex = files.length; // Track index where new files will be added
 
     let loadedCount = 0;
     selectedFiles.forEach((file) => {
@@ -73,18 +74,20 @@ export default function Home() {
         if (loadedCount === selectedFiles.length) {
           setFiles((prev) => {
             const updated = [...prev, ...newFileItems];
-            // If this is the first upload, ensure activeIndex is 0
-            if (prev.length === 0) {
-              setActiveIndex(0);
-            }
             return updated;
           });
+
+          // Focus on newly added files:
+          // - If 1 file added: focus on that file
+          // - If multiple files added: focus on first new file
+          setActiveIndex(firstNewFileIndex);
+
           setIsAddingMore(false);
         }
       };
       reader.readAsDataURL(file);
     });
-  }, []);
+  }, [files.length]);
 
   // Handle clicking the add more button in carousel
   const handleAddMore = useCallback(() => {
