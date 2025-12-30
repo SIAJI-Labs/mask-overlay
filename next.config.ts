@@ -3,7 +3,7 @@ import withPWAInit from "next-pwa";
 
 const withPWA = withPWAInit({
   dest: "public",
-  register: true,
+  register: false, // We handle registration manually in ServiceWorkerProvider
   skipWaiting: true,
   disable: process.env.NODE_ENV === "development",
   // Fix for static export - exclude build manifests and SSG manifests from precaching
@@ -20,6 +20,15 @@ const withPWA = withPWAInit({
 });
 
 const nextConfig: NextConfig = {
+  // Use commit hash as build ID for consistent, traceable builds
+  generateBuildId: async () => {
+    // Use commit hash in production for deterministic builds
+    // Falls back to timestamp in development
+    return (
+      process.env.NEXT_PUBLIC_COMMIT_HASH ||
+      `dev-${Date.now()}`
+    );
+  },
   // Allow next-pwa webpack config with Turbopack
   turbopack: {},
   // Static export configuration for fully static site
