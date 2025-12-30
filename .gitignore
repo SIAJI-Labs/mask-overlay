@@ -42,3 +42,7 @@ next-env.d.ts
 
 # nginx configs (server-specific)
 .nginx/
+
+# PWA service worker files (generated at build time)
+/public/sw.js
+/public/workbox-*.js

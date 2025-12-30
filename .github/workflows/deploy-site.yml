@@ -195,15 +195,25 @@ jobs:
 
             # Backup current deployment if it exists
             if [ -d "public" ]; then
-              echo "📦 Creating backup of current deployment..."
+              echo "📦 Creating compressed backup of current deployment..."
               BACKUP_NAME="backup-$(date +%Y%m%d-%H%M%S)"
-              sudo -u www mkdir -p "$SITE_ROOT_PATH/backups"
-              sudo -u www cp -r "public" "$SITE_ROOT_PATH/backups/$BACKUP_NAME"
-              echo "✅ Backup created: $BACKUP_NAME"
+              sudo -u www mkdir -p "$SITE_ROOT_PATH/backups/$BACKUP_NAME"
+
+              # Create compressed backup using zip
+              echo "🗜️  Compressing public directory..."
+              sudo -u www bash -c "cd '$SITE_ROOT_PATH' && zip -r -q 'backups/$BACKUP_NAME/public.zip' public"
+
+              # Show backup size
+              if [ -f "$SITE_ROOT_PATH/backups/$BACKUP_NAME/public.zip" ]; then
+                BACKUP_SIZE=$(du -h "$SITE_ROOT_PATH/backups/$BACKUP_NAME/public.zip" | cut -f1)
+                echo "✅ Backup created: $BACKUP_NAME/public.zip ($BACKUP_SIZE)"
+              else
+                echo "⚠️  Backup file not created"
+              fi
 
               # Cleanup old backups (keep only 5 latest)
               echo "🧹 Cleaning up old backups (keeping latest 5)..."
-              sudo -u www bash -c "cd '$SITE_ROOT_PATH/backups' && ls -1t | tail -n +6 | xargs -r rm -rf"
+              sudo -u www bash -c "cd '$SITE_ROOT_PATH/backups' && ls -1dt backup-* 2>/dev/null | tail -n +6 | xargs -r rm -rf"
               echo "✅ Backup cleanup completed"
             else
               echo "ℹ️ No existing public directory found to backup"
@@ -255,11 +265,14 @@ jobs:
 
                 if [ "$IS_INITIAL_DEPLOYMENT" = false ]; then
                   echo "🔄 Restoring site from latest backup..."
-                  LATEST_BACKUP=$(ls -1t "$SITE_ROOT_PATH/backups" 2>/dev/null | head -1)
-                  if [[ -n "$LATEST_BACKUP" ]]; then
-                    echo "📦 Restoring from backup: $LATEST_BACKUP"
-                    sudo -u www cp -r "$SITE_ROOT_PATH/backups/$LATEST_BACKUP" "$SITE_ROOT_PATH/public"
+                  LATEST_BACKUP=$(ls -1dt "$SITE_ROOT_PATH/backups"/backup-* 2>/dev/null | head -1)
+                  if [[ -n "$LATEST_BACKUP" && -f "$LATEST_BACKUP/public.zip" ]]; then
+                    echo "📦 Restoring from backup: $(basename $LATEST_BACKUP)"
+                    echo "🗜️  Extracting backup..."
+                    sudo -u www bash -c "cd '$SITE_ROOT_PATH' && unzip -q -o '$LATEST_BACKUP/public.zip'"
                     echo "✅ Site restored from backup successfully"
+                  else
+                    echo "⚠️  No backup files found to restore from"
                   fi
                 fi
                 exit 1
@@ -305,11 +318,12 @@ jobs:
                 # Only try to restore if not initial deployment
                 if [ "$IS_INITIAL_DEPLOYMENT" = false ]; then
                   echo "🔄 Restoring site from latest backup due to extraction failure..."
-                  LATEST_BACKUP=$(ls -1t "$SITE_ROOT_PATH/backups" 2>/dev/null | head -1)
+                  LATEST_BACKUP=$(ls -1dt "$SITE_ROOT_PATH/backups"/backup-* 2>/dev/null | head -1)
 
-                  if [[ -n "$LATEST_BACKUP" ]]; then
-                    echo "📦 Restoring from backup: $LATEST_BACKUP"
-                    sudo -u www cp -r "$SITE_ROOT_PATH/backups/$LATEST_BACKUP" "$SITE_ROOT_PATH/public"
+                  if [[ -n "$LATEST_BACKUP" && -f "$LATEST_BACKUP/public.zip" ]]; then
+                    echo "📦 Restoring from backup: $(basename $LATEST_BACKUP)"
+                    echo "🗜️  Extracting backup..."
+                    sudo -u www bash -c "cd '$SITE_ROOT_PATH' && unzip -q -o '$LATEST_BACKUP/public.zip'"
                     echo "✅ Site restored from backup successfully"
                   else
                     echo "⚠️  No backups found to restore from"
@@ -334,11 +348,12 @@ jobs:
               # Only try to restore if not initial deployment
               if [ "$IS_INITIAL_DEPLOYMENT" = false ]; then
                 echo "🔄 Restoring site from latest backup..."
-                LATEST_BACKUP=$(ls -1t "$SITE_ROOT_PATH/backups" 2>/dev/null | head -1)
+                LATEST_BACKUP=$(ls -1dt "$SITE_ROOT_PATH/backups"/backup-* 2>/dev/null | head -1)
 
-                if [[ -n "$LATEST_BACKUP" ]]; then
-                  echo "📦 Restoring from backup: $LATEST_BACKUP"
-                  sudo -u www cp -r "$SITE_ROOT_PATH/backups/$LATEST_BACKUP" "$SITE_ROOT_PATH/public"
+                if [[ -n "$LATEST_BACKUP" && -f "$LATEST_BACKUP/public.zip" ]]; then
+                  echo "📦 Restoring from backup: $(basename $LATEST_BACKUP)"
+                  echo "🗜️  Extracting backup..."
+                  sudo -u www bash -c "cd '$SITE_ROOT_PATH' && unzip -q -o '$LATEST_BACKUP/public.zip'"
                   echo "✅ Site restored from backup successfully"
                 else
                   echo "⚠️  No backups found to restore from"

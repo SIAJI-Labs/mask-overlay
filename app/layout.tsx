@@ -4,6 +4,12 @@ import type { Metadata, Viewport } from "next";
 // Fonts
 import { Geist, Geist_Mono } from "next/font/google";
 
+// Providers
+import { ServiceWorkerProvider } from "@/components/providers/service-worker-provider";
+
+// Components
+import AppUpdateNotification from "@/components/app-update-notification";
+
 // Styles
 import "./globals.css";
 
@@ -18,7 +24,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Mask Overlay - Watermark Your Documents",
+  title: "Markly - Watermark Your Documents",
   description: "Securely add watermarks to confidential documents. 100% offline processing - your files never leave your device.",
   manifest: "/manifest.json",
   icons: {
@@ -32,7 +38,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Mask Overlay",
+    title: "Markly",
   },
 };
 
@@ -53,19 +59,10 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              // Service Worker Registration
-              if ('serviceWorker' in navigator) {
-                window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js', { scope: '/' });
-                });
-              }
-            `,
-          }}
-        />
+        <ServiceWorkerProvider>
+          {children}
+          <AppUpdateNotification />
+        </ServiceWorkerProvider>
       </body>
     </html>
   );

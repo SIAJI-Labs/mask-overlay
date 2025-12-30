@@ -112,11 +112,25 @@ try {
     `e.precacheAndRoute(${manifestString},{ignoreURLParametersMatching:[]})`
   );
 
+  // Add message event listener for SKIP_WAITING at the end of the file
+  const messageListenerCode = `
+// Listen for SKIP_WAITING message from clients
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+`;
+
+  // Append the message listener to the end of the service worker
+  swContent = swContent.trim() + '\n' + messageListenerCode;
+
   // Write the fixed service worker
   fs.writeFileSync(SW_PATH, swContent, 'utf8');
 
   console.log('✅ Service worker precache manifest rebuilt successfully');
   console.log(`   Total precache entries: ${newManifest.length}`);
+  console.log('✅ Added SKIP_WAITING message listener');
 
   // Show sample entries
   console.log('\n📋 Sample precache entries:');
